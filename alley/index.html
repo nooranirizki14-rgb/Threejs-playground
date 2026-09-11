@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>NEON RAIN — Cyberpunk Alley Walkthrough</title>
+  <meta name="description" content="Walk through a rainy cyberpunk alley. Wet neon reflections, cinematic rain, volumetric mood — built with Three.js." />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌃</text></svg>" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "../vendor/three.module.min.js",
+        "three/addons/": "./js/addons/"
+      }
+    }
+  </script>
+</head>
+<body>
+  <div id="scene-container"></div>
+
+  <div id="bar-top" class="bar hidden"></div>
+  <div id="bar-bottom" class="bar hidden"></div>
+
+  <!-- brand -->
+  <div id="brand">
+    <div class="brand-title">NEON<span>RAIN</span></div>
+    <div class="brand-sub">CYBERPUNK ALLEY // SECTOR 7</div>
+  </div>
+  <div id="fps">-- fps</div>
+
+  <!-- toolbar -->
+  <div id="toolbar">
+    <button id="btn-auto" class="tool-btn active" title="Auto-walk">🚶</button>
+    <button id="btn-reflect" class="tool-btn active" title="Wet reflections">💧</button>
+    <button id="btn-bars" class="tool-btn" title="Cinematic bars">🎬</button>
+    <button id="btn-mute" class="tool-btn" title="Mute (M)">🔊</button>
+  </div>
+
+  <!-- control hints -->
+  <div id="hint" class="hidden">
+    <span class="kb">WASD move · mouse look · SHIFT run · M mute</span>
+    <span class="touch-only">left stick move · drag right side to look</span>
+  </div>
+
+  <!-- resume pill (pointer lock lost) -->
+  <div id="resume" class="hidden">👆 click to look around</div>
+
+  <!-- touch joystick -->
+  <div id="joy-base" class="hidden"><div id="joy-knob"></div></div>
+
+  <!-- intro overlay -->
+  <div id="intro" class="overlay">
+    <div class="panel">
+      <div class="over-title">SECTOR 7 // 2:47 AM // RAIN</div>
+      <h1 class="title">NEON<span>RAIN</span></h1>
+      <p class="subtitle">A RAINY CYBERPUNK ALLEY WALKTHROUGH</p>
+      <p class="desc">Wet neon streets. Steam in the gutters. Thunder over the rooftops.<br />Take a walk — the city never sleeps.</p>
+      <button id="btn-start" class="big-btn">🌧️ &nbsp;STEP INTO THE RAIN</button>
+      <div class="controls kb">
+        <div><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd><span>walk the alley</span></div>
+        <div><kbd>MOUSE</kbd><span>look around</span></div>
+        <div><kbd>SHIFT</kbd><span>run</span><kbd>M</kbd><span>mute</span></div>
+      </div>
+      <div class="controls touch-only">
+        <div>🕹️<span>left stick to walk</span></div>
+        <div>👉<span>drag right side to look</span></div>
+      </div>
+      <p class="credit">Three.js · planar reflections · GPU rain · film-grade post-processing<br />inspired by <b>threejspunk.vercel.app</b> — headphones recommended 🎧</p>
+    </div>
+  </div>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
