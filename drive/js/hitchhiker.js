@@ -14,9 +14,9 @@ function glowTexture() {
   c.width = c.height = 64;
   const g = c.getContext('2d');
   const grad = g.createRadialGradient(32, 32, 2, 32, 32, 30);
-  grad.addColorStop(0, 'rgba(125,255,106,0.9)');
-  grad.addColorStop(0.4, 'rgba(125,255,106,0.35)');
-  grad.addColorStop(1, 'rgba(125,255,106,0)');
+  grad.addColorStop(0, 'rgba(255,200,130,0.9)');
+  grad.addColorStop(0.4, 'rgba(255,200,130,0.35)');
+  grad.addColorStop(1, 'rgba(255,200,130,0)');
   g.fillStyle = grad;
   g.fillRect(0, 0, 64, 64);
   const t = new THREE.CanvasTexture(c);
@@ -40,7 +40,7 @@ export class Hitchhikers {
     head.position.y = 1.68;
     const sign = new THREE.Mesh(
       new THREE.PlaneGeometry(0.55, 0.32),
-      new THREE.MeshBasicMaterial({ color: 0x7dff6a, side: THREE.DoubleSide })
+      new THREE.MeshBasicMaterial({ color: 0xffc98a, side: THREE.DoubleSide })
     );
     sign.position.set(0, 1.25, 0.42);
     const glow = new THREE.Sprite(new THREE.SpriteMaterial({

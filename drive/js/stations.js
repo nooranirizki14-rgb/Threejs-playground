@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import {
-  makeNeonSign, makeVerticalSign, makeTotem, makeRoadBoard,
+  makeBoxSign, makeTotem, makeRoadBoard,
   makePumpFace, makeGlowSprite, makeDetail,
 } from './textures.js';
 import { mulberry32, fmtRp } from './utils.js';
@@ -41,7 +41,7 @@ class Station {
     return new THREE.MeshStandardMaterial({ color, roughness: rough });
   }
 
-  neonBoost(mesh, v = 2.2) {
+  litBoost(mesh, v = 1.15) {
     mesh.material.color.setScalar(v);
     return mesh;
   }
@@ -74,9 +74,9 @@ class Station {
     under.rotation.x = Math.PI / 2;
     under.position.set(wx(8), 4.98, 1);
     this.fuelGroup.add(under);
-    this.canopySign = this.neonBoost(new THREE.Mesh(
+    this.canopySign = this.litBoost(new THREE.Mesh(
       new THREE.PlaneGeometry(9, 1.1),
-      new THREE.MeshBasicMaterial({ map: makeNeonSign({ text: 'BBM', color: '#00e5ff' }), transparent: true })
+      new THREE.MeshBasicMaterial({ map: makeBoxSign({ text: 'BBM', bg: '#c8102e', fg: '#ffffff' }), transparent: true })
     ));
     this.canopySign.position.set(wx(3.05), 4.5, 1);
     this.canopySign.rotation.y = Math.PI / 2;
@@ -160,9 +160,9 @@ class Station {
     door.position.set(wx(11.95), 1.2, -8);
     door.rotation.y = Math.PI / 2;
     this.shopGroup.add(door);
-    this.shopSign = this.neonBoost(new THREE.Mesh(
+    this.shopSign = this.litBoost(new THREE.Mesh(
       new THREE.PlaneGeometry(6, 1.5),
-      new THREE.MeshBasicMaterial({ map: makeNeonSign({ text: 'MART 24H', color: '#7dff6a' }), transparent: true })
+      new THREE.MeshBasicMaterial({ map: makeBoxSign({ text: 'MART 24H', sub: 'BUKA 24 JAM', bg: '#004a8f', fg: '#ffffff', subColor: '#ffd83d' }), transparent: true })
     ));
     this.shopSign.position.set(wx(11.9), 4.6, -8);
     this.shopSign.rotation.y = Math.PI / 2;
@@ -185,20 +185,20 @@ class Station {
       this.motelGroup.add(w);
       this.motelWindows.push(w);
     }
-    this.motelSign = this.neonBoost(new THREE.Mesh(
+    this.motelSign = this.litBoost(new THREE.Mesh(
       new THREE.PlaneGeometry(1.5, 4.2),
       new THREE.MeshBasicMaterial({
-        map: makeVerticalSign({ text: 'MOTEL', color: '#ff2fd6' }), transparent: true,
+        map: makeBoxSign({ text: 'MOTEL', bg: '#f2efe6', fg: '#c8102e', w: 192, h: 512, vertical: true }), transparent: true,
       })
     ));
     this.motelSign.position.set(wx(8.7), 4.4, -27.5);
     this.motelSign.rotation.y = Math.PI / 2;
     this.motelGroup.add(this.motelSign);
     this.flickerMats.push(this.motelSign.material);
-    const vac = this.neonBoost(new THREE.Mesh(
+    const vac = this.litBoost(new THREE.Mesh(
       new THREE.PlaneGeometry(3.4, 0.9),
       new THREE.MeshBasicMaterial({
-        map: makeNeonSign({ text: 'VACANCY', color: '#ffb03d', w: 512, h: 128 }), transparent: true,
+        map: makeBoxSign({ text: 'VACANCY', bg: '#1c1c1e', fg: '#ffb03d', w: 512, h: 128 }), transparent: true,
       })
     ), 2.4);
     vac.position.set(wx(8.9), 3.4, -30);
@@ -216,9 +216,9 @@ class Station {
     opening.position.set(wx(10.9), 1.6, 27);
     opening.rotation.y = Math.PI / 2;
     this.garageGroup.add(opening);
-    const garSign = this.neonBoost(new THREE.Mesh(
+    const garSign = this.litBoost(new THREE.Mesh(
       new THREE.PlaneGeometry(5.5, 1.4),
-      new THREE.MeshBasicMaterial({ map: makeNeonSign({ text: 'BENGKEL', color: '#4dc9ff' }), transparent: true })
+      new THREE.MeshBasicMaterial({ map: makeBoxSign({ text: 'BENGKEL', bg: '#0d47a1', fg: '#ffffff' }), transparent: true })
     ));
     garSign.position.set(wx(10.85), 4.9, 27);
     garSign.rotation.y = Math.PI / 2;
@@ -234,9 +234,9 @@ class Station {
     dinWin.position.set(wx(11.45), 1.9, -5);
     dinWin.rotation.y = Math.PI / 2;
     this.dinerGroup.add(dinWin);
-    const dinSign = this.neonBoost(new THREE.Mesh(
+    const dinSign = this.litBoost(new THREE.Mesh(
       new THREE.PlaneGeometry(6, 1.5),
-      new THREE.MeshBasicMaterial({ map: makeNeonSign({ text: 'WARKOP', sub: 'DINER · KOPI · MIE', color: '#ff9a3d' }), transparent: true })
+      new THREE.MeshBasicMaterial({ map: makeBoxSign({ text: 'WARKOP', sub: 'DINER · KOPI · MIE', bg: '#f7e8c3', fg: '#a32c1e' }), transparent: true })
     ));
     dinSign.position.set(wx(11.4), 4.3, -5);
     dinSign.rotation.y = Math.PI / 2;
@@ -263,9 +263,9 @@ class Station {
     const beam = new THREE.Mesh(new THREE.BoxGeometry(5.2, 0.5, 0.5), dark);
     beam.position.set(wx(6), 3.5, 24);
     this.washGroup.add(beam);
-    const washSign = this.neonBoost(new THREE.Mesh(
+    const washSign = this.litBoost(new THREE.Mesh(
       new THREE.PlaneGeometry(4.4, 1.0),
-      new THREE.MeshBasicMaterial({ map: makeNeonSign({ text: 'CUCI MOBIL', color: '#00e5ff', w: 512, h: 128 }), transparent: true })
+      new THREE.MeshBasicMaterial({ map: makeBoxSign({ text: 'CUCI MOBIL', bg: '#0277bd', fg: '#ffffff', w: 512, h: 128 }), transparent: true })
     ), 2.0);
     washSign.position.set(wx(6), 4.3, 24.2);
     this.washGroup.add(washSign);

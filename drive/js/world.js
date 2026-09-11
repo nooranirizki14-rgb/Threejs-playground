@@ -28,9 +28,9 @@ export class World {
     this.camera.rotation.order = 'YXZ';
     this.camera.position.set(0, 1.7, 0);
 
-    this.hemi = new THREE.HemisphereLight(0x2a3560, 0x030208, 0.5);
+    this.hemi = new THREE.HemisphereLight(0x3a4356, 0x030208, 0.5);
     this.scene.add(this.hemi);
-    this.moon = new THREE.DirectionalLight(0x8fa0ff, 0.35);
+    this.moon = new THREE.DirectionalLight(0xc4cbe8, 0.35);
     this.moon.position.set(-30, 60, -40);
     this.scene.add(this.moon);
 
@@ -42,7 +42,7 @@ export class World {
     this.composer.setSize(window.innerWidth, window.innerHeight);
     this.composer.addPass(new RenderPass(this.scene, this.camera));
     this.bloom = new UnrealBloomPass(
-      new THREE.Vector2(window.innerWidth, window.innerHeight), 0.75, 0.5, 0.8
+      new THREE.Vector2(window.innerWidth, window.innerHeight), 0.3, 0.4, 0.85
     );
     this.composer.addPass(this.bloom);
     this.grade = new ShaderPass(CinematicShader);

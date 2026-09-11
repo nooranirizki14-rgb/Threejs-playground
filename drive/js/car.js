@@ -330,7 +330,7 @@ export class Car {
     }
 
     // dome light
-    this.dome = new THREE.PointLight(0x8fa0ff, 0, 3.5, 2);
+    this.dome = new THREE.PointLight(0xffe6c0, 0, 3.5, 2);
     this.dome.position.set(0, 1.4, 0.1);
     this.group.add(this.dome);
     const domeLens = new THREE.Mesh(
@@ -427,11 +427,11 @@ export class Car {
         d.y = -2;
         d.x = Math.random() * 256;
       }
-      ctx.fillStyle = 'rgba(175,195,235,0.5)';
+      ctx.fillStyle = 'rgba(220,214,198,0.5)';
       ctx.beginPath();
       ctx.arc(d.x, d.y, d.r, 0, Math.PI * 2);
       ctx.fill();
-      ctx.fillStyle = 'rgba(230,240,255,0.5)';
+      ctx.fillStyle = 'rgba(240,236,226,0.5)';
       ctx.beginPath();
       ctx.arc(d.x - d.r * 0.3, d.y - d.r * 0.3, d.r * 0.4, 0, Math.PI * 2);
       ctx.fill();
@@ -521,7 +521,7 @@ export class Car {
       ctx.arc(0, 0, r, Math.PI * (0.75 + 1.5 * red), Math.PI * 2.25);
       ctx.stroke();
       // ticks
-      ctx.fillStyle = '#aeb8e8';
+      ctx.fillStyle = '#e8e4da';
       ctx.font = '700 20px Orbitron, monospace';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
@@ -530,7 +530,7 @@ export class Car {
         const a = Math.PI * (0.75 + (1.5 * i) / (n - 1));
         const v = Math.round((max * i) / (n - 1));
         ctx.fillText(String(v), Math.cos(a) * (r - 26), Math.sin(a) * (r - 26));
-        ctx.strokeStyle = '#7d8fd6';
+        ctx.strokeStyle = '#8a8478';
         ctx.lineWidth = 3;
         ctx.beginPath();
         ctx.moveTo(Math.cos(a) * (r - 8), Math.sin(a) * (r - 8));
@@ -545,11 +545,11 @@ export class Car {
       ctx.moveTo(0, 0);
       ctx.lineTo(Math.cos(na) * (r - 12), Math.sin(na) * (r - 12));
       ctx.stroke();
-      ctx.fillStyle = '#dfe4ff';
+      ctx.fillStyle = '#f2efe8';
       ctx.beginPath();
       ctx.arc(0, 0, 7, 0, Math.PI * 2);
       ctx.fill();
-      ctx.fillStyle = '#8f9bff';
+      ctx.fillStyle = '#9a958a';
       ctx.font = '600 17px Rajdhani, sans-serif';
       ctx.fillText(label, 0, 44);
       ctx.restore();
@@ -559,30 +559,30 @@ export class Car {
 
     // center stack: fuel + temp + odo + gear + clock + warns
     const cx0 = 218;
-    ctx.fillStyle = '#aeb8e8';
+    ctx.fillStyle = '#e8e4da';
     ctx.font = '700 22px Orbitron, monospace';
     ctx.textAlign = 'center';
     ctx.fillText(this.gear, 256, 42);
     ctx.font = '600 19px Rajdhani, sans-serif';
-    ctx.fillStyle = '#7d8fd6';
+    ctx.fillStyle = '#8a8478';
     ctx.fillText(this.clockStr + '   ' + fmtKm(this.odoM).toUpperCase(), 256, 68);
 
     // fuel bar
-    ctx.fillStyle = '#39406b';
+    ctx.fillStyle = '#2a2622';
     ctx.fillRect(cx0, 88, 76, 14);
     ctx.fillStyle = this.fuel01 < 0.15 ? '#ff5040' : '#ffb03d';
     ctx.fillRect(cx0, 88, 76 * clamp(this.fuel01, 0, 1), 14);
-    ctx.fillStyle = '#8f9bff';
+    ctx.fillStyle = '#9a958a';
     ctx.font = '700 15px Rajdhani, sans-serif';
     ctx.textAlign = 'left';
     ctx.fillText('FUEL', cx0, 118);
     // temp bar
-    ctx.fillStyle = '#39406b';
+    ctx.fillStyle = '#2a2622';
     ctx.fillRect(cx0, 128, 76, 14);
     const tk = clamp((this.tempC - 70) / 70, 0, 1);
-    ctx.fillStyle = tk > 0.8 ? '#ff5040' : '#4dc9ff';
+    ctx.fillStyle = tk > 0.8 ? '#ff5040' : '#5aa9e6';
     ctx.fillRect(cx0, 128, 76 * tk, 14);
-    ctx.fillStyle = '#8f9bff';
+    ctx.fillStyle = '#9a958a';
     ctx.fillText(Math.round(this.tempC) + '°C', cx0, 158);
 
     // warn lights
@@ -599,16 +599,16 @@ export class Car {
       wx += 30;
     }
     // health bar thin
-    ctx.fillStyle = '#39406b';
+    ctx.fillStyle = '#2a2622';
     ctx.fillRect(cx0, 216, 76, 8);
-    ctx.fillStyle = this.health > 50 ? '#7dff6a' : this.health > 25 ? '#ffb03d' : '#ff5040';
+    ctx.fillStyle = this.health > 50 ? '#58c472' : this.health > 25 ? '#ffb03d' : '#ff5040';
     ctx.fillRect(cx0, 216, 76 * clamp(this.health / 100, 0, 1), 8);
     this.cluTex.needsUpdate = true;
   }
 
   drawRadio() {
     const ctx = this.radCtx;
-    ctx.fillStyle = '#0a0618';
+    ctx.fillStyle = '#141210';
     ctx.fillRect(0, 0, 256, 64);
     ctx.textAlign = 'center';
     ctx.fillStyle = '#ff9a3d';
@@ -617,7 +617,7 @@ export class Car {
     ctx.font = '700 26px Orbitron, monospace';
     ctx.fillText(this.radioLine1, 128, 30);
     ctx.shadowBlur = 0;
-    ctx.fillStyle = '#c9b8ff';
+    ctx.fillStyle = '#e8e4da';
     ctx.font = '600 17px Rajdhani, sans-serif';
     ctx.fillText(this.radioLine2, 128, 52);
     this.radTex.needsUpdate = true;
@@ -626,11 +626,11 @@ export class Car {
 
   drawGPS() {
     const ctx = this.gpsCtx;
-    ctx.fillStyle = '#04140a';
+    ctx.fillStyle = '#0a1a10';
     ctx.fillRect(0, 0, 512, 64);
     ctx.textAlign = 'center';
-    ctx.fillStyle = '#7dff9a';
-    ctx.shadowColor = '#7dff9a';
+    ctx.fillStyle = '#8fd694';
+    ctx.shadowColor = '#8fd694';
     ctx.shadowBlur = 8;
     ctx.font = '700 25px Rajdhani, sans-serif';
     ctx.fillText(this.gpsLines[0] + '      ' + this.gpsLines[1], 256, 40);
@@ -814,7 +814,7 @@ export class Car {
     // dome
     const domeOn = this.domeTarget > 0;
     this.dome.intensity += ((domeOn ? 2.2 : 0) - this.dome.intensity) * Math.min(1, dt * 5);
-    this.domeLensMat.color.setRGB(0.16 + this.dome.intensity * 0.2, 0.18 + this.dome.intensity * 0.2, 0.3 + this.dome.intensity * 0.25);
+    this.domeLensMat.color.setRGB(0.3 + this.dome.intensity * 0.25, 0.26 + this.dome.intensity * 0.22, 0.18 + this.dome.intensity * 0.15);
 
     // smoke
     this.updateSmoke(dt);

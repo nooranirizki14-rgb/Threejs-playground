@@ -1,6 +1,6 @@
 import { clamp, fmtKm } from './utils.js';
 
-// Tiny neon minimap: road strip, upcoming stations, hitchhiker markers.
+// Tiny minimap: road strip, upcoming stations, hitchhiker markers.
 const FLAVOR_ICON = { mart: '🏪', motel: '🛏️', diner: '🍜' };
 const RANGE = 3000; // metres shown
 
@@ -18,7 +18,7 @@ export class Minimap {
     g.clearRect(0, 0, W, H);
     g.fillStyle = 'rgba(3, 2, 16, 0.72)';
     g.fillRect(0, 0, W, H);
-    g.strokeStyle = 'rgba(0, 229, 255, 0.5)';
+    g.strokeStyle = 'rgba(150, 170, 200, 0.55)';
     g.lineWidth = 2;
     g.strokeRect(1, 1, W - 2, H - 2);
 
@@ -26,7 +26,7 @@ export class Minimap {
     const yOf = (dz) => H - 18 - clamp(dz / RANGE, 0, 1) * (H - 30);
 
     // road strip (player lanes left of median)
-    g.fillStyle = 'rgba(120, 140, 255, 0.16)';
+    g.fillStyle = 'rgba(150, 156, 170, 0.16)';
     g.fillRect(cx - 22, 4, 44, H - 8);
     g.strokeStyle = 'rgba(255, 209, 102, 0.55)';
     g.lineWidth = 2;
@@ -36,7 +36,7 @@ export class Minimap {
     g.lineTo(cx + 20, H - 4);
     g.stroke();
     g.setLineDash([]);
-    g.strokeStyle = 'rgba(0, 229, 255, 0.35)';
+    g.strokeStyle = 'rgba(150, 170, 200, 0.4)';
     g.lineWidth = 1;
     g.strokeRect(cx - 22, 4, 44, H - 8);
 
@@ -52,10 +52,10 @@ export class Minimap {
         g.font = '10px serif';
         g.fillText('⛽', cx - 30, y + 11);
       }
-      g.fillStyle = 'rgba(201, 255, 217, 0.85)';
+      g.fillStyle = 'rgba(215, 228, 215, 0.9)';
       g.font = '9px Orbitron, monospace';
       g.fillText(fmtKm(s.dz), cx + 34, y);
-      g.fillStyle = 'rgba(0, 229, 255, 0.8)';
+      g.fillStyle = 'rgba(160, 180, 210, 0.9)';
       g.beginPath();
       g.arc(cx - 12, y, 2.5, 0, Math.PI * 2);
       g.fill();
@@ -80,8 +80,8 @@ export class Minimap {
 
     // player arrow
     const py = H - 14;
-    g.fillStyle = '#7dff6a';
-    g.shadowColor = '#7dff6a';
+    g.fillStyle = '#57c785';
+    g.shadowColor = '#57c785';
     g.shadowBlur = 8;
     g.beginPath();
     g.moveTo(cx - 12, py - 8);

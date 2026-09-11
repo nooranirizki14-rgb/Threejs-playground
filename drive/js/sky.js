@@ -36,7 +36,7 @@ export class Sky {
     this.moon.scale.set(26, 26, 1);
     scene.add(this.moon);
     this.moonHalo = new THREE.Sprite(new THREE.SpriteMaterial({
-      map: glowTex, color: 0x8fa0ff, transparent: true, opacity: 0.35,
+      map: glowTex, color: 0xb8c2e8, transparent: true, opacity: 0.35,
       blending: THREE.AdditiveBlending, fog: false, depthWrite: false,
     }));
     this.moonHalo.scale.set(90, 90, 1);
@@ -59,7 +59,7 @@ export class Sky {
 
     // horizon city glow
     this.glows = [];
-    const glowCols = [0xff9a3d, 0xff5d8f, 0x4dc9ff, 0xff9a3d, 0xb537ff];
+    const glowCols = [0xff9a3d, 0xffb35c, 0xff8a4d, 0xff9a3d, 0xffc98a];
     for (let i = 0; i < 5; i++) {
       const s = new THREE.Sprite(new THREE.SpriteMaterial({
         map: glowTex, color: glowCols[i], transparent: true, opacity: 0.32,

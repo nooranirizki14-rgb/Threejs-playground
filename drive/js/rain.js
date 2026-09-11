@@ -33,7 +33,7 @@ export class RainStreaks {
       uLen: { value: 1.0 },
       uSlant: { value: 0.16 },
       uWindX: { value: 1.4 },
-      uColor: { value: new THREE.Color(0x8fa8ff) },
+      uColor: { value: new THREE.Color(0xa8b2c4) },
       uOpacity: { value: 0.3 },
     };
     const mat = new THREE.ShaderMaterial({
@@ -111,7 +111,7 @@ export class SplashRings {
       uCamPos: { value: new THREE.Vector3() },
       uBox: { value: 60 },
       uMaxR: { value: 0.5 },
-      uColor: { value: new THREE.Color(0x5f7dff) },
+      uColor: { value: new THREE.Color(0x7d8aa0) },
       uOpacity: { value: 0.5 },
     };
     const mat = new THREE.ShaderMaterial({

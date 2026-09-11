@@ -278,9 +278,9 @@ export class Game {
     this.world.hemi.intensity = 0.5 + flash * 2.4;
     this.world.moon.intensity = 0.35 + flash * 1.6;
     this.world.scene.fog.color.copy(this.world.baseFog);
-    this.world.scene.fog.color.r += flash * 0.1;
-    this.world.scene.fog.color.g += flash * 0.12;
-    this.world.scene.fog.color.b += flash * 0.2;
+    this.world.scene.fog.color.r += flash * 0.16;
+    this.world.scene.fog.color.g += flash * 0.17;
+    this.world.scene.fog.color.b += flash * 0.19;
     this.world.scene.background.copy(this.world.scene.fog.color);
     this.world.scene.fog.density = this.weather.fogDensity;
     this.world.grade.uniforms.uTime.value = t;

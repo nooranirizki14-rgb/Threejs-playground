@@ -9,61 +9,41 @@ function toTexture(c, srgb = true) {
   return t;
 }
 
-function glowText(ctx, text, x, y, font, color, blur = 22) {
-  ctx.save();
-  ctx.font = font;
+// Flat backlit box sign (normal SPBU / shops / motel...) — no neon glow.
+export function makeBoxSign({ text, sub = '', subColor = null, bg = '#f5f5f5', fg = '#222222', w = 512, h = 256, vertical = false }) {
+  const [c, ctx] = makeCanvas(w, h);
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, w, h);
+  // subtle inner shading so it reads as a lit box at night
+  const grad = ctx.createLinearGradient(0, 0, 0, h);
+  grad.addColorStop(0, 'rgba(255,255,255,0.14)');
+  grad.addColorStop(0.5, 'rgba(255,255,255,0)');
+  grad.addColorStop(1, 'rgba(0,0,0,0.18)');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, w, h);
+  ctx.strokeStyle = 'rgba(0,0,0,0.45)';
+  ctx.lineWidth = 6;
+  ctx.strokeRect(4, 4, w - 8, h - 8);
+  ctx.fillStyle = fg;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.shadowColor = color;
-  ctx.shadowBlur = blur;
-  ctx.fillStyle = color;
-  ctx.fillText(text, x, y);
-  ctx.fillText(text, x, y);
-  ctx.shadowBlur = 0;
-  ctx.globalAlpha = 0.85;
-  ctx.fillStyle = '#ffffff';
-  ctx.fillText(text, x, y);
-  ctx.restore();
-}
-
-export function makeNeonSign({ text, sub = '', color = '#ff2fd6', w = 512, h = 256 }) {
-  const [c, ctx] = makeCanvas(w, h);
-  ctx.save();
-  ctx.strokeStyle = color;
-  ctx.lineWidth = 5;
-  ctx.shadowColor = color;
-  ctx.shadowBlur = 20;
-  ctx.strokeRect(14, 14, w - 28, h - 28);
-  ctx.strokeRect(14, 14, w - 28, h - 28);
-  ctx.restore();
-  const size = sub ? h * 0.32 : h * 0.4;
-  glowText(ctx, text, w / 2, sub ? h * 0.38 : h * 0.5,
-    `900 ${size}px Orbitron, "Segoe UI", sans-serif`, color, 24);
-  if (sub) {
-    glowText(ctx, sub, w / 2, h * 0.74,
-      `700 ${h * 0.15}px Orbitron, sans-serif`, '#ffffff', 12);
+  if (vertical) {
+    const chars = [...text];
+    const size = Math.min(w * 0.52, (h * 0.86) / Math.max(chars.length, 1));
+    ctx.font = `900 ${size}px Arial, sans-serif`;
+    const step = size * 1.18;
+    const startY = h / 2 - (step * (chars.length - 1)) / 2;
+    chars.forEach((ch, i) => ctx.fillText(ch, w / 2, startY + i * step));
+  } else {
+    const size = sub ? h * 0.34 : h * 0.42;
+    ctx.font = `900 ${size}px Arial, "Segoe UI", sans-serif`;
+    ctx.fillText(text, w / 2, sub ? h * 0.36 : h * 0.52);
+    if (sub) {
+      ctx.font = `700 ${h * 0.15}px Arial, sans-serif`;
+      ctx.fillStyle = subColor || fg;
+      ctx.fillText(sub, w / 2, h * 0.74);
+    }
   }
-  return toTexture(c);
-}
-
-export function makeVerticalSign({ text, color = '#00e5ff', w = 192, h = 512 }) {
-  const [c, ctx] = makeCanvas(w, h);
-  ctx.save();
-  ctx.strokeStyle = color;
-  ctx.lineWidth = 5;
-  ctx.shadowColor = color;
-  ctx.shadowBlur = 18;
-  ctx.strokeRect(12, 12, w - 24, h - 24);
-  ctx.strokeRect(12, 12, w - 24, h - 24);
-  ctx.restore();
-  const chars = [...text];
-  const size = Math.min(w * 0.5, (h * 0.84) / Math.max(chars.length, 1));
-  const step = size * 1.2;
-  const startY = h / 2 - (step * (chars.length - 1)) / 2;
-  chars.forEach((ch, i) => {
-    glowText(ctx, ch, w / 2, startY + i * step,
-      `900 ${size}px Orbitron, sans-serif`, color, 20);
-  });
   return toTexture(c);
 }
 
@@ -81,7 +61,7 @@ export function makeRoadBoard({ w = 512, h = 256 } = {}) {
     ctx.textBaseline = 'middle';
     lines.forEach((ln, i) => {
       const y = (h / (lines.length + 1)) * (i + 1);
-      ctx.font = `700 ${ln.big ? 52 : 44}px Rajdhani, sans-serif`;
+      ctx.font = `700 ${ln.big ? 52 : 44}px Arial, sans-serif`;
       ctx.fillStyle = '#ffffff';
       ctx.shadowColor = 'rgba(255,255,255,0.55)';
       ctx.shadowBlur = 8;
@@ -104,28 +84,24 @@ export function makeTotem({ brand = 'NUSANTARA FUEL', w = 256, h = 512 } = {}) {
   const [c, ctx] = makeCanvas(w, h);
   const tex = toTexture(c);
   function draw(priceText) {
-    const g = ctx.createLinearGradient(0, 0, 0, h);
-    g.addColorStop(0, '#0a1030');
-    g.addColorStop(1, '#05070f');
-    ctx.fillStyle = g;
+    // white pole body, like a real SPBU totem
+    ctx.fillStyle = '#e8e9eb';
     ctx.fillRect(0, 0, w, h);
-    ctx.strokeStyle = '#00e5ff';
-    ctx.lineWidth = 5;
-    ctx.shadowColor = '#00e5ff';
-    ctx.shadowBlur = 16;
-    ctx.strokeRect(10, 10, w - 20, h - 20);
-    ctx.shadowBlur = 0;
+    // red top band with brand
+    ctx.fillStyle = '#c8102e';
+    ctx.fillRect(0, 0, w, 150);
+    ctx.fillStyle = '#ffffff';
     ctx.textAlign = 'center';
-    ctx.fillStyle = '#7df9ff';
-    ctx.font = '900 34px Orbitron, sans-serif';
+    ctx.font = '900 30px Arial, sans-serif';
     const words = brand.split(' ');
-    words.forEach((wd, i) => ctx.fillText(wd, w / 2, 70 + i * 42));
-    // fuel drop icon
+    words.forEach((wd, i) => ctx.fillText(wd, w / 2, 58 + i * 38));
+    // blue stripe
+    ctx.fillStyle = '#004a8f';
+    ctx.fillRect(0, 150, w, 14);
+    // fuel drop icon (flat red)
     ctx.save();
-    ctx.translate(w / 2, 210);
-    ctx.fillStyle = '#ff9a3d';
-    ctx.shadowColor = '#ff9a3d';
-    ctx.shadowBlur = 24;
+    ctx.translate(w / 2, 240);
+    ctx.fillStyle = '#c8102e';
     ctx.beginPath();
     ctx.moveTo(0, -46);
     ctx.bezierCurveTo(26, -8, 34, 8, 34, 22);
@@ -134,18 +110,22 @@ export function makeTotem({ brand = 'NUSANTARA FUEL', w = 256, h = 512 } = {}) {
     ctx.bezierCurveTo(-34, 8, -26, -8, 0, -46);
     ctx.fill();
     ctx.restore();
-    ctx.fillStyle = '#ffd166';
-    ctx.font = '700 30px Orbitron, sans-serif';
-    ctx.fillText(priceText, w / 2, 310);
-    ctx.fillStyle = '#8f9bff';
-    ctx.font = '600 22px Rajdhani, sans-serif';
-    ctx.fillText('PER LITER', w / 2, 342);
-    ctx.fillStyle = '#7dff6a';
-    ctx.font = '700 30px Orbitron, sans-serif';
-    ctx.fillText('★ 24 JAM ★', w / 2, 400);
-    ctx.fillStyle = '#c6cbff';
-    ctx.font = '600 24px Rajdhani, sans-serif';
-    ctx.fillText('MART · MUSOLA · TOILET', w / 2, 448);
+    // price panel
+    ctx.fillStyle = '#111111';
+    ctx.font = '700 34px Arial, sans-serif';
+    ctx.fillText(priceText, w / 2, 340);
+    ctx.fillStyle = '#555555';
+    ctx.font = '600 22px Arial, sans-serif';
+    ctx.fillText('PER LITER', w / 2, 370);
+    ctx.fillStyle = '#c8102e';
+    ctx.font = '700 28px Arial, sans-serif';
+    ctx.fillText('★ 24 JAM ★', w / 2, 424);
+    ctx.fillStyle = '#333333';
+    ctx.font = '600 22px Arial, sans-serif';
+    ctx.fillText('MART · MUSOLA · TOILET', w / 2, 462);
+    ctx.strokeStyle = 'rgba(0,0,0,0.35)';
+    ctx.lineWidth = 4;
+    ctx.strokeRect(3, 3, w - 6, h - 6);
     tex.needsUpdate = true;
   }
   draw('...');
@@ -174,19 +154,19 @@ export function makePumpFace({ brand = 'PERTALITE' } = {}) {
   ctx.fillStyle = '#0b0e1a';
   ctx.fillRect(0, 0, 128, 192);
   ctx.fillStyle = '#ff9a3d';
-  ctx.font = '900 17px Orbitron, sans-serif';
+  ctx.font = '900 17px Arial, sans-serif';
   ctx.textAlign = 'center';
   ctx.fillText(brand, 64, 26);
   ctx.fillStyle = '#031007';
   ctx.fillRect(10, 40, 108, 44);
-  ctx.fillStyle = '#7dff6a';
+  ctx.fillStyle = '#6fd68a';
   ctx.font = '700 24px "Courier New", monospace';
   ctx.fillText('0.00 L', 64, 68);
   ctx.fillStyle = '#031007';
   ctx.fillRect(10, 92, 108, 44);
-  ctx.fillStyle = '#7dff6a';
+  ctx.fillStyle = '#6fd68a';
   ctx.fillText('Rp 0', 64, 120);
-  ctx.fillStyle = '#39406b';
+  ctx.fillStyle = '#3a3f4a';
   for (let i = 0; i < 3; i++) ctx.fillRect(14 + i * 36, 148, 28, 28);
   return toTexture(c);
 }
