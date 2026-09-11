@@ -289,7 +289,7 @@ class Station {
     this.soapAttr.setUsage(THREE.DynamicDrawUsage);
     sgeo.setAttribute('position', this.soapAttr);
     this.soap = new THREE.Points(sgeo, new THREE.PointsMaterial({
-      size: 0.22, map: glowTex, color: 0x9adcff, transparent: true, opacity: 0.8,
+      size: 0.22, map: this.glowTex, color: 0x9adcff, transparent: true, opacity: 0.8,
       depthWrite: false,
     }));
     this.soap.frustumCulled = false;
@@ -307,7 +307,7 @@ class Station {
       g.add(head);
       const pool = new THREE.Mesh(new THREE.PlaneGeometry(11, 11),
         new THREE.MeshBasicMaterial({
-          map: glowTex, color: 0xffc98a, transparent: true, opacity: 0.2,
+          map: this.glowTex, color: 0xffc98a, transparent: true, opacity: 0.2,
           blending: THREE.AdditiveBlending, depthWrite: false,
         }));
       pool.rotation.x = -Math.PI / 2;
