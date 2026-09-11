@@ -1,0 +1,151 @@
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body {
+  width: 100%; height: 100%; overflow: hidden;
+  background: #05030f;
+  font-family: 'Rajdhani', 'Segoe UI', sans-serif;
+  color: #dfe4ff;
+  touch-action: none; overscroll-behavior: none;
+  user-select: none; -webkit-user-select: none;
+}
+
+.hidden { display: none !important; }
+#scene-container { position: fixed; inset: 0; }
+#scene-container canvas { display: block; }
+
+/* cinematic bars */
+.bar {
+  position: fixed; left: 0; right: 0; height: 9vh; z-index: 15;
+  background: #000; pointer-events: none;
+}
+#bar-top { top: 0; } #bar-bottom { bottom: 0; }
+
+/* brand */
+#brand { position: fixed; top: 1rem; left: 1.2rem; z-index: 20; pointer-events: none; }
+.brand-title {
+  font-family: 'Orbitron', monospace; font-weight: 900;
+  font-size: 1.35rem; letter-spacing: 0.18em; color: #fff;
+  text-shadow: 0 0 14px #00e5ff, 0 0 46px rgba(255, 47, 214, 0.55);
+}
+.brand-title span { color: #7df9ff; }
+.brand-sub { font-size: 0.68rem; letter-spacing: 0.32em; color: #8f9bff; margin-top: 0.15rem; }
+
+#fps {
+  position: fixed; top: 1rem; right: 1.2rem; z-index: 20; pointer-events: none;
+  font-family: 'Orbitron', monospace; font-size: 0.68rem; letter-spacing: 0.15em;
+  color: rgba(160, 175, 255, 0.6);
+}
+
+/* toolbar */
+#toolbar {
+  position: fixed; right: 1rem; bottom: 1rem; z-index: 20;
+  display: flex; gap: 0.55rem;
+}
+.tool-btn {
+  width: 46px; height: 46px; border-radius: 12px;
+  background: rgba(6, 3, 28, 0.62); border: 1px solid rgba(0, 229, 255, 0.35);
+  font-size: 1.25rem; cursor: pointer; color: #fff;
+  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  transition: transform 0.12s, box-shadow 0.12s, border-color 0.12s, opacity 0.12s;
+  opacity: 0.55;
+}
+.tool-btn:hover { transform: scale(1.08); }
+.tool-btn.active { opacity: 1; border-color: #ff2fd6; box-shadow: 0 0 16px rgba(255, 47, 214, 0.45); }
+
+/* hints */
+#hint {
+  position: fixed; bottom: 1.1rem; left: 50%; transform: translateX(-50%);
+  z-index: 20; pointer-events: none;
+  font-size: 0.92rem; letter-spacing: 0.12em; color: rgba(200, 208, 255, 0.75);
+  background: rgba(6, 3, 28, 0.5); border: 1px solid rgba(0, 229, 255, 0.2);
+  padding: 0.4rem 1.1rem; border-radius: 20px;
+  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  white-space: nowrap;
+}
+.touch-only { display: none; }
+body.touch .touch-only { display: inline; }
+body.touch .kb { display: none; }
+
+/* resume pill */
+#resume {
+  position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  z-index: 25; cursor: pointer;
+  font-family: 'Orbitron', monospace; font-size: 0.95rem; letter-spacing: 0.15em;
+  color: #fff; background: rgba(6, 3, 28, 0.72);
+  border: 1px solid #00e5ff; border-radius: 30px; padding: 0.9rem 2rem;
+  box-shadow: 0 0 26px rgba(0, 229, 255, 0.4);
+  animation: pulse 1.4s ease-in-out infinite alternate;
+}
+@keyframes pulse { from { transform: translate(-50%, -50%) scale(1); } to { transform: translate(-50%, -50%) scale(1.05); } }
+
+/* joystick */
+#joy-base {
+  position: fixed; z-index: 22; width: 120px; height: 120px; border-radius: 50%;
+  border: 2px solid rgba(0, 229, 255, 0.5); background: rgba(0, 229, 255, 0.06);
+  pointer-events: none; transform: translate(-50%, -50%);
+}
+#joy-knob {
+  position: absolute; left: 50%; top: 50%; width: 52px; height: 52px; border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #9df3ff, #00b3cc);
+  box-shadow: 0 0 18px rgba(0, 229, 255, 0.7);
+  transform: translate(-50%, -50%);
+}
+
+/* intro overlay */
+.overlay {
+  position: fixed; inset: 0; z-index: 30;
+  display: flex; align-items: center; justify-content: center;
+  background: radial-gradient(ellipse at center, rgba(3, 0, 18, 0.25) 0%, rgba(3, 0, 18, 0.78) 100%);
+  padding: 1rem;
+}
+.panel {
+  text-align: center; padding: 2.4rem 3rem;
+  border: 1px solid rgba(255, 47, 214, 0.3); border-radius: 20px;
+  background: rgba(5, 2, 25, 0.72);
+  box-shadow: 0 0 70px rgba(255, 47, 214, 0.16), 0 0 130px rgba(0, 229, 255, 0.1);
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  max-width: min(94vw, 600px); max-height: 94vh; overflow-y: auto;
+}
+.over-title { font-family: 'Orbitron', monospace; font-size: 0.7rem; letter-spacing: 0.4em; color: #00e5ff; margin-bottom: 0.8rem; }
+.title {
+  font-family: 'Orbitron', monospace; font-weight: 900;
+  font-size: clamp(2.6rem, 9vw, 4.4rem); letter-spacing: 0.06em; line-height: 1;
+  background: linear-gradient(180deg, #aef7ff 0%, #00c2ff 40%, #ff2fd6 78%, #ff9a3d 100%);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  filter: drop-shadow(0 0 24px rgba(0, 229, 255, 0.4));
+}
+.title span {
+  background: linear-gradient(180deg, #fff, #ffd166);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.subtitle { letter-spacing: 0.32em; font-size: 0.78rem; color: #8f9bff; margin: 0.7rem 0 1rem; font-weight: 600; }
+.desc { font-size: 1.05rem; color: #c6cbff; line-height: 1.55; margin-bottom: 1.5rem; }
+.big-btn {
+  font-family: 'Orbitron', monospace; font-weight: 700; letter-spacing: 0.1em; font-size: 1.02rem;
+  color: #fff; background: linear-gradient(90deg, rgba(0, 229, 255, 0.2), rgba(255, 47, 214, 0.2));
+  border: 2px solid #00e5ff; border-radius: 12px; padding: 0.95rem 2.2rem; cursor: pointer;
+  box-shadow: 0 0 22px rgba(0, 229, 255, 0.4), inset 0 0 14px rgba(0, 229, 255, 0.15);
+  transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
+  margin-bottom: 1.5rem;
+}
+.big-btn:hover { transform: translateY(-2px) scale(1.03); border-color: #ff2fd6; box-shadow: 0 0 38px rgba(255, 47, 214, 0.6); }
+.big-btn:active { transform: scale(0.98); }
+.controls { margin: 0 auto 1.1rem; display: inline-block; text-align: left; font-size: 1.02rem; }
+.controls div { margin: 0.3rem 0; color: #c6cbff; }
+.controls span { color: #8f9bff; margin-left: 0.6rem; }
+kbd {
+  display: inline-block; min-width: 1.7em; text-align: center;
+  font-family: 'Orbitron', monospace; font-size: 0.7rem;
+  background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 47, 214, 0.45);
+  border-bottom-width: 2px; border-radius: 6px;
+  padding: 0.25em 0.45em; margin: 0 0.12em; color: #fff;
+}
+.credit { font-size: 0.85rem; color: #5c63a8; letter-spacing: 0.05em; line-height: 1.6; }
+.credit b { color: #9aa3e8; }
+
+@media (max-width: 640px) {
+  .panel { padding: 1.7rem 1.3rem; }
+  .subtitle { letter-spacing: 0.18em; }
+  .brand-title { font-size: 1.05rem; }
+  #hint { font-size: 0.8rem; bottom: 4.6rem; }
+}
