@@ -16,6 +16,11 @@ export class Debris {
   private leafDat: { a: number; r: number; y: number; s: number }[] = [];
   private checkIdx = 0;
   private wind = new THREE.Vector3();
+  private burstT = 0;
+
+  burst(dur = 15) {
+    this.burstT = dur;
+  }
 
   constructor(scene: THREE.Scene) {
     const geo = new THREE.BoxGeometry(0.35, 0.12, 1.1);
@@ -70,14 +75,16 @@ export class Debris {
     dt: number, cx: number, cz: number, radius: number, intensity: number,
     windAt: WindFn, carX: number, carZ: number, onHit: (strength: number) => void
   ) {
-    const active = Math.floor(COUNT * (0.25 + intensity * 0.75));
+    this.burstT = Math.max(0, this.burstT - dt);
+    const active = this.burstT > 0 ? COUNT : Math.floor(COUNT * (0.25 + intensity * 0.75));
+    const speedMul = this.burstT > 0 ? 1.45 : 1;
     for (let i = 0; i < COUNT; i++) {
       const it = this.items[i];
       const px = cx + Math.cos(it.a) * it.r;
       const pz = cz + Math.sin(it.a) * it.r;
       // tangential speed peaks at the core edge, falls off with distance
       const wSpeed = windAt(px, pz, this.wind);
-      const tang = Math.min(60, 8 + wSpeed * 0.9) * it.s;
+      const tang = Math.min(60, 8 + wSpeed * 0.9) * it.s * speedMul;
       it.a += (tang / Math.max(4, it.r)) * dt;
       // drift: pulled in when far, flung around the core
       it.r += ((it.r > radius ? -6 : 2.5) + Math.sin(it.a * 3 + it.y) * 3) * dt * (0.5 + intensity);

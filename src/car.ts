@@ -1,8 +1,19 @@
 import * as THREE from 'three';
 
-// Tornado research vehicle: armored SUV exterior (bullbar, roof rack,
-// anemometer, beacons, sensor mast) + full interior (wheel, pedals,
-// shifter, live instrument screens, wipers, rain/crack windshield layers).
+// Research vehicles: 3 selectable variants (paint + stats), full interior,
+// live instruments, wipers, rain/crack windshield layers, pet + crew props.
+export type CarVariant = 'interceptor' | 'tiv' | 'scout';
+
+export interface CarStats {
+  hull: number; mass: number; grip: number; sensors: number; power: number;
+}
+
+export const CAR_STATS: Record<CarVariant, CarStats> = {
+  interceptor: { hull: 100, mass: 1.0, grip: 1.0, sensors: 1.0, power: 1.0 },
+  tiv: { hull: 150, mass: 1.7, grip: 1.25, sensors: 0.8, power: 1.1 },
+  scout: { hull: 75, mass: 0.75, grip: 0.9, sensors: 1.4, power: 0.9 },
+};
+
 function box(w: number, h: number, d: number, mat: THREE.Material, x: number, y: number, z: number, parent: THREE.Object3D): THREE.Mesh {
   const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
   m.position.set(x, y, z);
@@ -39,9 +50,10 @@ export class ResearchCar {
   private dialTimer = 0;
   private screenCtx!: CanvasRenderingContext2D;
   private screenTex!: THREE.CanvasTexture;
-  private dialKmh = 0;
+  private dialKmh = -1;
 
-  constructor(scene: THREE.Scene) {
+  constructor(scene: THREE.Scene, variant: CarVariant = 'interceptor') {
+    const paint = variant === 'tiv' ? 0x3a4436 : variant === 'scout' ? 0x2a4a7a : 0xd8dce0;
     const trim = new THREE.MeshStandardMaterial({ color: 0x14161c, roughness: 0.85 });
     const seat = new THREE.MeshStandardMaterial({ color: 0x15181f, roughness: 1 });
     const dash = new THREE.MeshStandardMaterial({ color: 0x101216, roughness: 0.7 });
@@ -49,7 +61,7 @@ export class ResearchCar {
       color: 0x8aa5bb, transparent: true, opacity: 0.1,
       roughness: 0.1, metalness: 0, side: THREE.DoubleSide, depthWrite: false,
     });
-    const armor = new THREE.MeshStandardMaterial({ color: 0xd8dce0, metalness: 0.35, roughness: 0.5 });
+    const armor = new THREE.MeshStandardMaterial({ color: paint, metalness: 0.35, roughness: 0.5 });
     const darkMetal = new THREE.MeshStandardMaterial({ color: 0x23262c, metalness: 0.7, roughness: 0.45 });
     const stripe = new THREE.MeshStandardMaterial({ color: 0xd86a1e, roughness: 0.6 });
     const tire = new THREE.MeshStandardMaterial({ color: 0x0a0a0c, roughness: 1 });
@@ -57,22 +69,28 @@ export class ResearchCar {
     const tail = new THREE.MeshStandardMaterial({ color: 0x220000, emissive: 0xff1a1a, emissiveIntensity: 2 });
     const g = this.group;
 
-    // ---- armored shell ----
-    box(2.0, 0.12, 2.6, trim, 0, 0.4, 0.05, g); // floor pan
-    box(2.0, 0.1, 2.5, armor, 0, 1.5, 0.05, g); // roof
-    box(1.9, 0.08, 0.1, armor, 0, 1.44, -1.16, g); // windshield header
-    box(0.1, 0.55, 2.4, armor, -1.0, 0.68, 0.05, g); // armored doors
+    // shell
+    box(2.0, 0.12, 2.6, trim, 0, 0.4, 0.05, g);
+    box(2.0, 0.1, 2.5, armor, 0, 1.5, 0.05, g);
+    box(1.9, 0.08, 0.1, armor, 0, 1.44, -1.16, g);
+    box(0.1, 0.55, 2.4, armor, -1.0, 0.68, 0.05, g);
     box(0.1, 0.55, 2.4, armor, 1.0, 0.68, 0.05, g);
-    box(0.02, 0.16, 2.4, stripe, -1.06, 0.72, 0.05, g); // livery stripes
+    box(0.02, 0.16, 2.4, stripe, -1.06, 0.72, 0.05, g);
     box(0.02, 0.16, 2.4, stripe, 1.06, 0.72, 0.05, g);
-    box(0.06, 0.3, 2.2, darkMetal, -1.09, 0.55, 0.05, g); // rock sliders
+    box(0.06, 0.3, 2.2, darkMetal, -1.09, 0.55, 0.05, g);
     box(0.06, 0.3, 2.2, darkMetal, 1.09, 0.55, 0.05, g);
+    // TIV gets extra plate armor
+    if (variant === 'tiv') {
+      box(0.05, 0.5, 2.0, darkMetal, -1.13, 0.68, 0.05, g);
+      box(0.05, 0.5, 2.0, darkMetal, 1.13, 0.68, 0.05, g);
+      box(2.1, 0.08, 2.6, darkMetal, 0, 1.58, 0.05, g);
+    }
     for (const sx of [-0.98, 0.98]) {
       const win = new THREE.Mesh(new THREE.PlaneGeometry(2.3, 0.5), glass);
       win.rotation.y = Math.PI / 2;
       win.position.set(sx, 1.2, 0.05);
       g.add(win);
-      box(0.07, 0.55, 0.09, armor, sx, 1.2, 0.3, g); // B-pillar
+      box(0.07, 0.55, 0.09, armor, sx, 1.2, 0.3, g);
     }
     const ws = new THREE.Mesh(new THREE.PlaneGeometry(1.9, 0.68), glass);
     ws.rotation.x = -0.675;
@@ -86,7 +104,6 @@ export class ResearchCar {
     rg.position.set(0, 1.2, 1.28);
     g.add(rg);
     box(1.9, 0.55, 0.1, armor, 0, 0.68, 1.28, g);
-    // hood / trunk / bumpers
     box(1.85, 0.14, 1.4, armor, 0, 0.75, -1.45, g);
     box(1.95, 0.32, 0.28, darkMetal, 0, 0.46, -2.2, g);
     box(1.85, 0.16, 0.9, armor, 0, 0.79, 1.7, g);
@@ -107,22 +124,22 @@ export class ResearchCar {
       h.position.set(0, by, -2.36);
       g.add(h);
     }
-    // mud flaps
     for (const [fx, fz] of [[-0.95, -0.95], [0.95, -0.95], [-0.95, 1.85], [0.95, 1.85]]) {
       box(0.06, 0.25, 0.3, trim, fx, 0.35, fz, g);
     }
-    // big tires (front pair steers)
-    const wg = new THREE.CylinderGeometry(0.4, 0.4, 0.28, 16);
+    // tires (TIV: bigger)
+    const tireR = variant === 'tiv' ? 0.46 : 0.4;
+    const wg = new THREE.CylinderGeometry(tireR, tireR, 0.28, 16);
     wg.rotateZ(Math.PI / 2);
     const mkWheel = (x: number, z: number, steer: THREE.Group | null) => {
       const w = new THREE.Mesh(wg, tire);
       w.castShadow = true;
       if (steer) {
-        steer.position.set(x, 0.4, z);
+        steer.position.set(x, tireR, z);
         steer.add(w);
         g.add(steer);
       } else {
-        w.position.set(x, 0.4, z);
+        w.position.set(x, tireR, z);
         g.add(w);
       }
       this.wheels.push(w);
@@ -132,14 +149,14 @@ export class ResearchCar {
     mkWheel(-0.9, 1.4, null);
     mkWheel(0.9, 1.4, null);
 
-    // ---- roof rack + science gear ----
+    // roof rack + science gear
     for (const rz of [-0.7, 0.7]) box(1.7, 0.05, 0.12, darkMetal, 0, 1.62, rz, g);
     for (const rx of [-0.7, 0.7]) box(0.12, 0.05, 1.5, darkMetal, rx, 1.62, 0, g);
-    box(0.7, 0.28, 0.5, trim, -0.35, 1.78, 0.35, g); // sensor crate
+    box(0.7, 0.28, 0.5, trim, -0.35, 1.78, 0.35, g);
     const dome = new THREE.Mesh(new THREE.SphereGeometry(0.09, 12, 8), armor);
     dome.position.set(0.45, 1.72, 0.4);
-    g.add(dome); // GPS dome
-    for (const cx of [-0.5, 0.5]) { // exterior camera pods
+    g.add(dome);
+    for (const cx of [-0.5, 0.5]) {
       box(0.14, 0.1, 0.2, trim, cx, 1.7, -0.62, g);
       const lens = new THREE.Mesh(
         new THREE.CylinderGeometry(0.03, 0.03, 0.03, 8),
@@ -168,7 +185,6 @@ export class ResearchCar {
     const whip = new THREE.Mesh(new THREE.CylinderGeometry(0.006, 0.01, 0.9, 6), darkMetal);
     whip.position.set(-0.6, 1.95, 0.9);
     g.add(whip);
-    // emergency beacons
     this.beaconMatA = new THREE.MeshStandardMaterial({ color: 0x220000, emissive: 0xff2222, emissiveIntensity: 3 });
     this.beaconMatB = new THREE.MeshStandardMaterial({ color: 0x000022, emissive: 0x2244ff, emissiveIntensity: 0.4 });
     box(0.14, 0.08, 0.1, this.beaconMatA, -0.25, 1.6, -0.85, g);
@@ -177,10 +193,9 @@ export class ResearchCar {
     this.beaconLight.position.set(0, 1.9, -0.85);
     g.add(this.beaconLight);
 
-    // ---- interior ----
+    // interior
     box(1.9, 0.18, 0.35, dash, 0, 0.92, -0.575, g);
     box(1.9, 0.1, 0.3, dash, 0, 1.02, -0.62, g);
-    // dial cluster (redrawn with speed)
     const dc = document.createElement('canvas');
     dc.width = 256; dc.height = 128;
     this.dialCtx = dc.getContext('2d') as CanvasRenderingContext2D;
@@ -190,7 +205,6 @@ export class ResearchCar {
     dials.position.set(-0.4, 0.99, -0.395);
     g.add(dials);
     this.drawDials(0);
-    // research screen (live data)
     const sc = document.createElement('canvas');
     sc.width = 256; sc.height = 160;
     this.screenCtx = sc.getContext('2d') as CanvasRenderingContext2D;
@@ -201,7 +215,6 @@ export class ResearchCar {
     screen.rotation.y = -0.12;
     g.add(screen);
     this.setScreen(['WIND ---', 'TOR ---', 'PRES ---', 'DATA 0']);
-    // steering wheel
     const steerGroup = new THREE.Group();
     steerGroup.position.set(-0.4, 0.95, -0.35);
     steerGroup.rotation.x = -0.45;
@@ -220,7 +233,6 @@ export class ResearchCar {
     col.rotation.x = Math.PI / 2 - 0.45;
     col.position.set(-0.4, 0.88, -0.48);
     g.add(col);
-    // console + shifter + extinguisher
     box(0.3, 0.32, 0.7, trim, 0, 0.6, 0.1, g);
     const sh = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.16, 8), trim);
     sh.position.set(0, 0.82, -0.05);
@@ -233,7 +245,6 @@ export class ResearchCar {
     );
     ext.position.set(0.22, 0.62, 0.45);
     g.add(ext);
-    // pedals
     const pedalG = new THREE.BoxGeometry(0.09, 0.03, 0.14);
     for (const px of [-0.48, -0.32]) {
       const p = new THREE.Mesh(pedalG, darkMetal);
@@ -241,7 +252,6 @@ export class ResearchCar {
       p.rotation.x = -0.5;
       g.add(p);
     }
-    // seats
     const mkSeat = (x: number, z: number) => {
       box(0.55, 0.18, 0.5, seat, x, 0.55, z, g);
       const back = box(0.55, 0.62, 0.16, seat, x, 0.92, z + 0.3, g);
@@ -251,7 +261,6 @@ export class ResearchCar {
     mkSeat(-0.4, 0.35);
     mkSeat(0.4, 0.35);
     box(1.5, 0.18, 0.5, seat, 0, 0.55, 0.95, g);
-    // rear-view mirror
     box(0.03, 0.08, 0.03, trim, 0, 1.4, -1.0, g);
     box(0.3, 0.11, 0.03, trim, 0, 1.33, -1.0, g);
     const mf = new THREE.Mesh(new THREE.PlaneGeometry(0.27, 0.09), mirror);
@@ -261,12 +270,11 @@ export class ResearchCar {
       box(0.12, 0.03, 0.03, trim, sx * 1.05, 1.0, -0.7, g);
       box(0.06, 0.12, 0.16, armor, sx * 1.12, 1.02, -0.7, g);
     }
-    // cabin light
     const cabinGlow = new THREE.PointLight(0xffe0b0, 1.2, 3.5, 1.6);
     cabinGlow.position.set(0, 1.35, 0.3);
     g.add(cabinGlow);
 
-    // ---- windshield rain layer ----
+    // windshield rain + crack layers
     const drc = document.createElement('canvas');
     drc.width = 256; drc.height = 160;
     this.dropCtx = drc.getContext('2d') as CanvasRenderingContext2D;
@@ -278,7 +286,6 @@ export class ResearchCar {
     drops.rotation.x = -0.675;
     drops.position.set(0, 1.2, -0.945);
     g.add(drops);
-    // ---- crack layer ----
     const crc = document.createElement('canvas');
     crc.width = 256; crc.height = 160;
     this.crackCtx = crc.getContext('2d') as CanvasRenderingContext2D;
@@ -291,15 +298,16 @@ export class ResearchCar {
     cracks.rotation.x = -0.675;
     cracks.position.set(0, 1.2, -0.94);
     g.add(cracks);
-    // ---- wipers ----
+    // wipers
     const armG = new THREE.BoxGeometry(0.025, 0.5, 0.02);
     const bladeG = new THREE.BoxGeometry(0.03, 0.42, 0.015);
+    const bladeM = new THREE.MeshStandardMaterial({ color: 0x050505, roughness: 0.9 });
     const mkWiper = (x: number) => {
       const pivot = new THREE.Group();
       pivot.position.set(x, 0.98, -0.76);
       const arm = new THREE.Mesh(armG, trim);
       arm.position.y = 0.22;
-      const blade = new THREE.Mesh(bladeG, new THREE.MeshStandardMaterial({ color: 0x050505, roughness: 0.9 }));
+      const blade = new THREE.Mesh(bladeG, bladeM);
       blade.position.set(0.06, 0.42, 0.005);
       blade.rotation.z = -0.25;
       pivot.add(arm, blade);
@@ -310,7 +318,7 @@ export class ResearchCar {
     this.wiperL = mkWiper(-0.45);
     this.wiperR = mkWiper(0.35);
 
-    // ---- headlights ----
+    // headlights
     const mkBeam = (x: number) => {
       const s = new THREE.SpotLight(0xcfe6ff, 50, 70, 0.46, 0.55, 1.4);
       s.position.set(x, 0.7, -2.2);
@@ -337,6 +345,61 @@ export class ResearchCar {
     scene.add(g);
   }
 
+  /** passenger torsos: maya rides shotgun, reyes in back */
+  addCrew(maya: boolean, reyes: boolean) {
+    const skin = new THREE.MeshStandardMaterial({ color: 0xc89878, roughness: 0.8 });
+    const jacketM = new THREE.MeshStandardMaterial({ color: 0x7a2a2a, roughness: 0.9 });
+    const jacketR = new THREE.MeshStandardMaterial({ color: 0x2a4a7a, roughness: 0.9 });
+    const hairM = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 1 });
+    const hairR = new THREE.MeshStandardMaterial({ color: 0x5a3a1a, roughness: 1 });
+    const mk = (x: number, z: number, jacket: THREE.Material, hair: THREE.Material) => {
+      const torso = new THREE.Mesh(new THREE.CapsuleGeometry(0.16, 0.3, 4, 10), jacket);
+      torso.position.set(x, 0.92, z);
+      const head = new THREE.Mesh(new THREE.SphereGeometry(0.12, 12, 10), skin);
+      head.position.set(x, 1.28, z - 0.02);
+      const cap = new THREE.Mesh(new THREE.SphereGeometry(0.125, 12, 8, 0, Math.PI * 2, 0, 1.2), hair);
+      cap.position.copy(head.position);
+      this.group.add(torso, head, cap);
+    };
+    if (maya) mk(0.4, 0.35, jacketM, hairM);
+    if (reyes) mk(-0.45, 0.95, jacketR, hairR);
+  }
+
+  /** pet rides on the back seat, visible when you look back */
+  addPet(kind: 'dog' | 'cat') {
+    const fur = new THREE.MeshStandardMaterial({
+      color: kind === 'dog' ? 0x8a5a2a : 0x2a2c30, roughness: 1,
+    });
+    const bodyM = new THREE.Mesh(new THREE.SphereGeometry(0.14, 10, 8), fur);
+    bodyM.scale.set(1, 0.9, 1.3);
+    bodyM.position.set(0.45, 0.78, 0.95);
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.1, 10, 8), fur);
+    head.position.set(0.45, 0.95, 0.82);
+    this.group.add(bodyM, head);
+    if (kind === 'dog') {
+      const earG = new THREE.ConeGeometry(0.035, 0.09, 6);
+      for (const ex of [-0.06, 0.06]) {
+        const ear = new THREE.Mesh(earG, fur);
+        ear.position.set(0.45 + ex, 1.04, 0.84);
+        this.group.add(ear);
+      }
+      const snout = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.06, 0.09), fur);
+      snout.position.set(0.45, 0.92, 0.73);
+      this.group.add(snout);
+    } else {
+      const earG = new THREE.ConeGeometry(0.03, 0.07, 4);
+      for (const ex of [-0.055, 0.055]) {
+        const ear = new THREE.Mesh(earG, fur);
+        ear.position.set(0.45 + ex, 1.03, 0.82);
+        this.group.add(ear);
+      }
+      const tailM = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.02, 0.25, 6), fur);
+      tailM.position.set(0.45, 0.9, 1.08);
+      tailM.rotation.x = 0.5;
+      this.group.add(tailM);
+    }
+  }
+
   setLights(on: boolean) {
     for (const b of this.beams) b.visible = on;
   }
@@ -346,8 +409,7 @@ export class ResearchCar {
   }
 
   setCrack(level: number) {
-    // draw one more burst each quarter of damage
-    const want = Math.floor(level * 4.999);
+    const want = Math.floor(Math.min(1, level) * 4.999);
     while (this.crackDrawn < want) {
       this.crackDrawn++;
       const x = this.crackCtx;
@@ -411,9 +473,9 @@ export class ResearchCar {
     x.fillStyle = '#67e8f9';
     x.font = 'bold 24px monospace';
     x.textAlign = 'center';
-    x.fillText(String(Math.round(kmh)), 192, 82);
+    x.fillText('PARK', 192, 82);
     x.font = '11px monospace';
-    x.fillText('km/h', 192, 98);
+    x.fillText('brake set', 192, 98);
     this.dialTex.needsUpdate = true;
   }
 
@@ -427,7 +489,6 @@ export class ResearchCar {
       x.arc(Math.random() * 256, Math.random() * 160, r, 0, 6.29);
       x.fill();
     }
-    // running streaks
     x.strokeStyle = 'rgba(200,220,235,0.3)';
     x.lineWidth = 1;
     for (let i = 0; i < 30; i++) {
@@ -445,7 +506,6 @@ export class ResearchCar {
     this.frontL.rotation.y = steer * 0.45;
     this.frontR.rotation.y = steer * 0.45;
     for (const w of this.wheels) w.rotation.x -= (speedKmh / 3.6) * dt / 0.4;
-    // wipers
     if (this.wipersOn) {
       this.wiperPhase += dt * 4.4;
       const a = Math.sin(this.wiperPhase) * 0.55;
@@ -455,22 +515,18 @@ export class ResearchCar {
       if (passed && !this.lastSwish && this.onWiperPass) this.onWiperPass();
       this.lastSwish = passed;
     }
-    // beacons alternate
     const ph = Math.sin(t * 9) > 0;
     this.beaconMatA.emissiveIntensity = ph ? 3.2 : 0.3;
     this.beaconMatB.emissiveIntensity = ph ? 0.3 : 3.2;
     this.beaconLight.color.setHex(ph ? 0xff3333 : 0x3355ff);
     this.beaconLight.intensity = 4 + Math.abs(Math.sin(t * 9)) * 4;
-    // anemometer spins with the wind
     this.anem.rotation.y += dt * (1 + windSpeed * 0.35);
-    // dials at ~6 Hz
     this.dialTimer -= dt;
     if (this.dialTimer <= 0 && Math.abs(speedKmh - this.dialKmh) > 1.5) {
       this.dialTimer = 0.15;
       this.dialKmh = speedKmh;
       this.drawDials(speedKmh);
     }
-    // droplet shimmer
     this.dropTimer -= dt;
     if (this.dropTimer <= 0) {
       this.dropTimer = 0.4;
