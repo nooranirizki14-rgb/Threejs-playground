@@ -93,9 +93,9 @@ export class SkyFX {
     this.ffSeed = new Float32Array(FF * 3);
     const ffPos = new Float32Array(FF * 3);
     for (let i = 0; i < FF; i++) {
-      this.ffBase[i * 3] = rnd(-12, 12);
+      this.ffBase[i * 3] = rnd(-17, 17);
       this.ffBase[i * 3 + 1] = rnd(0.3, 2.0);
-      this.ffBase[i * 3 + 2] = rnd(-20, 6);
+      this.ffBase[i * 3 + 2] = rnd(-21, 9);
       this.ffSeed[i * 3] = rnd(0, 20);
       this.ffSeed[i * 3 + 1] = rnd(0, 20);
       this.ffSeed[i * 3 + 2] = rnd(0, 20);

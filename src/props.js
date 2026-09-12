@@ -2,7 +2,8 @@ import * as THREE from 'three';
 import { makeCanvas } from './utils.js';
 
 // Cabin wall + window + door, porch swing, guest chair, planters,
-// fence, stepping stones, dock with lantern, feature trees.
+// expanded fence, stone paths, shed, bench overlook, firewood stack,
+// dock with lantern, feature trees.
 function glowTexture() {
   const [c, ctx] = makeCanvas(64, 64);
   const grad = ctx.createRadialGradient(32, 32, 2, 32, 32, 30);
@@ -27,6 +28,9 @@ export class Props {
     this.buildPlanters(scene);
     this.buildFence(scene, wood);
     this.buildStones(scene);
+    this.buildShed(scene, wood);
+    this.buildBench(scene, midWood);
+    this.buildFirewood(scene, midWood);
     this.buildDock(scene, midWood);
     this.buildTrees(scene);
     this.lightsOn = true;
@@ -63,6 +67,7 @@ export class Props {
   buildCabin(scene, wood) {
     const wall = new THREE.Mesh(new THREE.BoxGeometry(15, 3.4, 0.3), wood);
     wall.position.set(0, 1.7, 5.6);
+    wall.castShadow = true;
     scene.add(wall);
     // warm window
     const frame = new THREE.Mesh(new THREE.BoxGeometry(1.7, 1.3, 0.1), wood);
@@ -167,22 +172,126 @@ export class Props {
   }
 
   buildFence(scene, wood) {
-    this.fenceRun(scene, wood, -12, -20, -1.2, -20);
-    this.fenceRun(scene, wood, 1.2, -20, 12, -20);
-    this.fenceRun(scene, wood, -12, -20, -12, 6);
-    this.fenceRun(scene, wood, 12, -20, 12, 6);
+    this.fenceRun(scene, wood, -18, -20, -1.2, -20);
+    this.fenceRun(scene, wood, 1.2, -20, 18, -20);
+    this.fenceRun(scene, wood, -18, -20, -18, 10);
+    this.fenceRun(scene, wood, 18, -20, 18, 10);
+    this.fenceRun(scene, wood, -18, 10, 18, 10);
   }
 
   buildStones(scene) {
     const mat = new THREE.MeshStandardMaterial({ color: 0x3d4148, roughness: 1 });
     const geo = new THREE.CylinderGeometry(0.45, 0.5, 0.08, 9);
+    const spots = [];
     for (let i = 0; i < 7; i++) {
+      spots.push([0.4 + (i % 2 === 0 ? -0.15 : 0.15), -4.5 - i * 2.3]); // porch -> gate
+    }
+    spots.push([-1.5, -9.5], [-3, -10.5], [-4.5, -11.5], [-6, -12.3], [-7.2, -12.8]); // -> campfire
+    spots.push([3, -12], [6, -13.5], [9, -14.5], [11.5, -15]); // -> bench
+    spots.forEach(([x, z], i) => {
       const s = new THREE.Mesh(geo, mat);
-      s.position.set(0.4 + (i % 2 === 0 ? -0.15 : 0.15), 0.04, -4.5 - i * 2.3);
+      s.position.set(x, 0.04, z);
       s.rotation.y = i * 0.7;
       s.receiveShadow = true;
       scene.add(s);
+    });
+  }
+
+  buildShed(scene, wood) {
+    const g = new THREE.Group();
+    g.position.set(-14.5, 0, -17.5);
+    const body = new THREE.Mesh(new THREE.BoxGeometry(3, 2.2, 2.5), wood);
+    body.position.y = 1.1;
+    body.castShadow = true;
+    const roof = new THREE.Mesh(
+      new THREE.ConeGeometry(2.4, 1.2, 4),
+      new THREE.MeshStandardMaterial({ color: 0x1c150c, roughness: 1 })
+    );
+    roof.position.y = 2.8;
+    roof.rotation.y = Math.PI / 4;
+    roof.castShadow = true;
+    const door = new THREE.Mesh(
+      new THREE.BoxGeometry(0.9, 1.7, 0.08),
+      new THREE.MeshStandardMaterial({ color: 0x3a2a18, roughness: 0.9 })
+    );
+    door.position.set(-0.5, 0.85, 1.26);
+    this.shedMat = new THREE.MeshStandardMaterial({
+      color: 0x201408, emissive: 0xffb45e, emissiveIntensity: 1.0, roughness: 0.4,
+    });
+    const win = new THREE.Mesh(new THREE.PlaneGeometry(0.6, 0.5), this.shedMat);
+    win.position.set(0.7, 1.4, 1.26);
+    g.add(body, roof, door, win);
+    scene.add(g);
+    this.boxes.push({ x0: -16.2, x1: -12.8, z0: -19, z1: -16 });
+  }
+
+  buildBench(scene, mat) {
+    const g = new THREE.Group();
+    g.position.set(13.5, 0, -15.5);
+    const seat = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.08, 0.45), mat);
+    seat.position.y = 0.5;
+    seat.castShadow = true;
+    const back = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.5, 0.06), mat);
+    back.position.set(0, 0.85, 0.22);
+    const legGeo = new THREE.BoxGeometry(0.07, 0.5, 0.4);
+    for (const lx of [-0.6, 0.6]) {
+      const leg = new THREE.Mesh(legGeo, mat);
+      leg.position.set(lx, 0.25, 0);
+      g.add(leg);
     }
+    g.add(seat, back);
+    scene.add(g);
+    // lantern post beside the bench
+    const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.06, 1.6, 8), mat);
+    pole.position.set(14.5, 0.8, -15.5);
+    scene.add(pole);
+    this.benchMat = new THREE.MeshStandardMaterial({
+      color: 0x201408, emissive: 0xffb45e, emissiveIntensity: 2, roughness: 0.4,
+    });
+    const lampBox = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.22, 0.16), this.benchMat);
+    lampBox.position.set(14.5, 1.65, -15.5);
+    scene.add(lampBox);
+    this.benchGlowMat = new THREE.SpriteMaterial({
+      map: glowTexture(), transparent: true, opacity: 0.5,
+      blending: THREE.AdditiveBlending, depthWrite: false,
+    });
+    const glow = new THREE.Sprite(this.benchGlowMat);
+    glow.scale.set(1.4, 1.4, 1);
+    glow.position.set(14.5, 1.65, -15.5);
+    scene.add(glow);
+    this.benchLight = new THREE.PointLight(0xffb45e, 6, 9, 2);
+    this.benchLight.position.set(14.5, 1.65, -15.5);
+    scene.add(this.benchLight);
+    this.circles.push({ x: 13.5, z: -15.5, r: 0.95 });
+    this.circles.push({ x: 14.5, z: -15.5, r: 0.25 });
+  }
+
+  buildFirewood(scene, mat) {
+    const g = new THREE.Group();
+    g.position.set(9.5, 0, 7.8);
+    const logGeo = new THREE.CylinderGeometry(0.11, 0.11, 1.1, 8);
+    const logMat = new THREE.MeshStandardMaterial({ color: 0x4a3421, roughness: 1 });
+    let row = 0;
+    for (let layer = 0; layer < 3; layer++) {
+      const count = 4 - layer;
+      for (let i = 0; i < count; i++) {
+        const log = new THREE.Mesh(logGeo, logMat);
+        log.rotation.z = Math.PI / 2;
+        log.position.set(0, 0.12 + layer * 0.2, (i - (count - 1) / 2) * 0.24);
+        log.castShadow = true;
+        g.add(log);
+      }
+      row++;
+    }
+    void row;
+    const tarp = new THREE.Mesh(
+      new THREE.BoxGeometry(1.2, 0.06, 1.1),
+      new THREE.MeshStandardMaterial({ color: 0x2a3038, roughness: 1 })
+    );
+    tarp.position.y = 0.72;
+    g.add(tarp);
+    scene.add(g);
+    this.circles.push({ x: 9.5, z: 7.8, r: 0.85 });
   }
 
   buildDock(scene, mat) {
@@ -230,7 +339,8 @@ export class Props {
   buildTrees(scene) {
     const trunkMat = new THREE.MeshStandardMaterial({ color: 0x2a1c10, roughness: 1 });
     const leafMat = new THREE.MeshStandardMaterial({ color: 0x0e2013, roughness: 1 });
-    for (const [tx, tz] of [[-9, -12], [10, -16]]) {
+    const spots = [[-9, -12], [10, -16], [-15, -8], [15.5, -6], [-14, 4], [12, 6], [6, 8.5]];
+    for (const [tx, tz] of spots) {
       const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.26, 2.2, 8), trunkMat);
       trunk.position.set(tx, 1.1, tz);
       trunk.castShadow = true;
@@ -253,6 +363,10 @@ export class Props {
     this.lanternMat.emissiveIntensity = on ? 2 : 0;
     this.lanternGlowMat.opacity = on ? 0.55 : 0;
     this.lantern.visible = on;
+    this.benchMat.emissiveIntensity = on ? 2 : 0;
+    this.benchGlowMat.opacity = on ? 0.5 : 0;
+    this.benchLight.visible = on;
+    this.shedMat.emissiveIntensity = on ? 1.0 : 0;
   }
 
   update(t) {

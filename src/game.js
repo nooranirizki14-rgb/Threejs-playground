@@ -8,14 +8,16 @@ import { Rain } from './rain.js';
 import { Lake } from './lake.js';
 import { SkyFX } from './skyfx.js';
 import { Props } from './props.js';
+import { FireCamp } from './firecamp.js';
+import { Puddles } from './puddles.js';
+import { PostFX } from './postfx.js';
 import { AudioEngine } from './audio.js';
-import { clamp, lerp, smooth } from './utils.js';
+import { clamp, lerp, smooth, rnd } from './utils.js';
 
-// SIT: NIGHT PORCH — sit on a chair, look at the storm, stand, walk to the dock.
-// States: 'intro' -> 'seated' <-> 'moving' (sit/stand transition) | 'standing' (walk).
-const EYE_SEATED = new THREE.Vector3(0, 1.22, 2.6);
-const STAND_SPOT = new THREE.Vector3(1.0, 1.7, 2.75);
-const YARD = { x0: -12, x1: 12, z0: -34.2, z1: 7 };
+// SIT: NIGHT PORCH — sit on the chair or by the campfire, watch the storm,
+// explore the yard, walk the dock. States: 'intro' -> 'seated' <->
+// 'moving' (sit/stand transition) | 'standing' (walk).
+const YARD = { x0: -17.4, x1: 17.4, z0: -34.2, z1: 9.4 };
 const WALK_SPEED = 2.3;
 const TRANSIT_TIME = 0.9;
 
@@ -35,23 +37,57 @@ export class Game {
     this.lake = new Lake(this.world.scene);
     this.sky = new SkyFX(this.world.scene, this.world.hemi);
     this.props = new Props(this.world.scene);
+    this.fire = new FireCamp(this.world.scene);
+    this.puddles = new Puddles(this.world.scene);
+    this.postfx = new PostFX(this.world.renderer, this.world.scene, this.world.camera);
     this.audio = new AudioEngine();
-    this.sky.onThunder = () => this.audio.thunder();
+    // thunder arrives late, like the real thing (sound is slower than light)
+    this.sky.onThunder = () => {
+      setTimeout(() => this.audio.thunder(), rnd(800, 2500));
+    };
+    window.addEventListener('resize', () => {
+      this.postfx.setSize(window.innerWidth, window.innerHeight);
+    });
 
     this.boxes = [...this.porch.boxes, ...this.props.boxes];
     this.circles = [...this.porch.circles, ...this.props.circles];
 
+    // sittable spots: porch chair + two fireside logs
+    this.spots = [
+      {
+        id: 'chair', eye: new THREE.Vector3(0, 1.22, 2.6), yaw: 0,
+        body: { x: 0, y: 0.12, z: 2.6, rot: 0 },
+        stand: new THREE.Vector3(1.0, 1.7, 2.75),
+        near: { x: 0, z: 2.6 }, r: 2.5, label: 'chair', toast: 'ahh. much better 🪑',
+      },
+      {
+        id: 'fire-east', eye: new THREE.Vector3(-6.7, 1.07, -13), yaw: Math.PI / 2,
+        body: { x: -6.7, y: 0, z: -13, rot: Math.PI / 2 },
+        stand: new THREE.Vector3(-6.0, 1.7, -13),
+        near: { x: -6.7, z: -13 }, r: 2.0, label: 'fireside log', toast: 'warm by the fire 🔥',
+      },
+      {
+        id: 'fire-north', eye: new THREE.Vector3(-8.5, 1.07, -11.2), yaw: 0,
+        body: { x: -8.5, y: 0, z: -11.2, rot: 0 },
+        stand: new THREE.Vector3(-8.5, 1.7, -10.5),
+        near: { x: -8.5, z: -11.2 }, r: 2.0, label: 'fireside log', toast: 'warm by the fire 🔥',
+      },
+    ];
+    this.spot = this.spots[0];
+
     this.state = 'intro';
     this.standing = false;
-    this.transit = null; // {t, from, to, fromYaw, toYaw, toStanding}
-    this.walkPos = new THREE.Vector3().copy(STAND_SPOT);
+    this.transit = null; // {t, from, to, fromYaw, toYaw, toStanding, spot}
+    this.walkPos = this.spots[0].stand.clone();
     this.groundY = 0;
     this.bobPhase = 0;
+    this.lastStep = 0;
     this.idle = 0;
     this.toastTimer = 0;
     this.time = 0;
     this.last = performance.now();
     this.dockToastShown = false;
+    this.fireToastShown = false;
 
     this.els['btn-start'].addEventListener('click', () => this.start());
     this.controls.onLockChange = (locked) => this.onLockChange(locked);
@@ -73,8 +109,9 @@ export class Game {
     this.state = 'seated';
     this.controls.requestLock();
     this.audio.unlock();
-    this.audio.startRain();
-    this.toast('storm over the lake — E to stand, walk to the dock');
+    this.audio.startAmbience();
+    this.audio.setRain(this.rain.on);
+    this.toast('storm over the lake — find the campfire 🔥');
   }
 
   onLockChange(locked) {
@@ -85,28 +122,31 @@ export class Game {
     }
   }
 
-  chairDist() {
-    return Math.hypot(this.walkPos.x - 0, this.walkPos.z - 2.6);
+  nearSpot() {
+    for (const s of this.spots) {
+      if (Math.hypot(this.walkPos.x - s.near.x, this.walkPos.z - s.near.z) < s.r) return s;
+    }
+    return null;
   }
 
   pressE() {
     if (this.state === 'seated') {
       const yaw = this.controls.lookYaw;
       this.transit = {
-        t: 0, from: EYE_SEATED.clone(), to: STAND_SPOT.clone(),
-        fromYaw: yaw, toYaw: yaw, toStanding: true,
+        t: 0, from: this.spot.eye.clone(), to: this.spot.stand.clone(),
+        fromYaw: yaw, toYaw: yaw, toStanding: true, spot: this.spot,
       };
       this.state = 'moving';
     } else if (this.state === 'standing') {
-      if (this.chairDist() > 2.5) {
-        this.toast('the chair is back on the porch 🪑');
-        return;
-      }
+      const s = this.nearSpot();
+      if (!s) return;
       const cur = this.controls.lookYaw;
-      const flat = Math.round(cur / (Math.PI * 2)) * Math.PI * 2; // face the lake again
+      const twoPi = Math.PI * 2;
+      const flat = s.yaw + Math.round((cur - s.yaw) / twoPi) * twoPi;
+      this.body.sitAt(s.body.x, s.body.y, s.body.z, s.body.rot);
       this.transit = {
-        t: 0, from: this.world.camera.position.clone(), to: EYE_SEATED.clone(),
-        fromYaw: cur, toYaw: flat, toStanding: false,
+        t: 0, from: this.world.camera.position.clone(), to: s.eye.clone(),
+        fromYaw: cur, toYaw: flat, toStanding: false, spot: s,
       };
       this.state = 'moving';
     }
@@ -137,7 +177,7 @@ export class Game {
     }
 
     if (this.state === 'seated') {
-      this.world.camera.position.copy(EYE_SEATED);
+      this.world.camera.position.copy(this.spot.eye);
       this.applyLook(this.seatedPose());
     } else if (this.state === 'standing') {
       this.idle = 0;
@@ -152,6 +192,11 @@ export class Game {
         this.walkPos.x += dx * WALK_SPEED * dt;
         this.walkPos.z += dz * WALK_SPEED * dt;
         this.bobPhase += dt * 7.5;
+        const stepIdx = Math.floor(this.bobPhase / Math.PI);
+        if (stepIdx !== this.lastStep) {
+          this.lastStep = stepIdx;
+          this.audio.step();
+        }
       }
       this.walkPos.x = clamp(this.walkPos.x, YARD.x0, YARD.x1);
       this.walkPos.z = clamp(this.walkPos.z, YARD.z0, YARD.z1);
@@ -166,8 +211,13 @@ export class Game {
         this.dockToastShown = true;
         this.toast('the end of the dock. nice. 🎣');
       }
-      if (this.chairDist() < 2.2 && this.controls.locked) {
-        this.showPrompt('<b>E</b> — sit back down');
+      if (!this.fireToastShown && this.fire.distTo(this.walkPos) < 3) {
+        this.fireToastShown = true;
+        this.toast('the campfire — E to sit on a log 🔥');
+      }
+      const spot = this.nearSpot();
+      if (spot && this.controls.locked) {
+        this.showPrompt(`<b>E</b> — sit (${spot.label})`);
       } else if (!this.controls.locked) {
         this.showPrompt('click to capture mouse');
       } else {
@@ -188,9 +238,10 @@ export class Game {
       if (tr.t >= 1) {
         this.standing = tr.toStanding;
         this.walkPos.copy(tr.to);
+        this.spot = tr.spot;
         this.state = this.standing ? 'standing' : 'seated';
         this.transit = null;
-        if (!this.standing) this.toast('ahh. much better 🪑');
+        if (!this.standing) this.toast(this.spot.toast);
       }
     } else if (this.state === 'intro') {
       // slow cinematic drift behind the menu
@@ -207,6 +258,8 @@ export class Game {
     this.lake.update(dt, this.time, this.rain.on);
     this.sky.update(dt, this.time, this.rain.on, this.porch.lampOn);
     this.props.update(this.time);
+    this.fire.update(dt, this.time);
+    this.audio.updateFire(dt, this.fire.distTo(this.world.camera.position));
 
     // NOTE: clear pressed-keys LAST — reading justPressed above must see this frame's taps.
     // Clearing earlier (or never) makes E/R/L stick forever. This was the v1 "stuck keys" bug.
@@ -257,7 +310,7 @@ export class Game {
   }
 
   render() {
-    this.world.render();
+    this.postfx.render(this.time);
   }
 
   run() {

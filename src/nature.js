@@ -1,9 +1,13 @@
 import * as THREE from 'three';
 import { rnd, makeCanvas } from './utils.js';
 
-// Yard, grass, pine trees, lake with moon streak, mountains, stars, moon.
+// Yard, wet ground, grass, pine trees, mountains, stars, moon.
+// (Lake water + moon glint live in lake.js; the sky dome in skyfx.js.)
 const DECK = { x0: -7.5, x1: 7.5, z0: -3.5, z1: 5.5 };
 const inDeck = (x, z) => x > DECK.x0 && x < DECK.x1 && z > DECK.z0 && z < DECK.z1;
+const nearFire = (x, z, r) => Math.hypot(x + 8.5, z + 13) < r;
+const inShed = (x, z) => Math.abs(x + 14.5) < 3 && Math.abs(z + 17.5) < 2.5;
+const nearBench = (x, z) => Math.hypot(x - 13.5, z + 15.5) < 2.5;
 
 function grassTexture() {
   const [c, ctx] = makeCanvas(64, 64);
@@ -23,24 +27,6 @@ function grassTexture() {
   return new THREE.CanvasTexture(c);
 }
 
-function streakTexture() {
-  const [c, ctx] = makeCanvas(64, 256);
-  const grad = ctx.createLinearGradient(0, 0, 0, 256);
-  grad.addColorStop(0, 'rgba(190,205,235,0.75)');
-  grad.addColorStop(1, 'rgba(190,205,235,0)');
-  ctx.fillStyle = grad;
-  ctx.fillRect(0, 0, 64, 256);
-  // horizontal falloff
-  const side = ctx.createLinearGradient(0, 0, 64, 0);
-  side.addColorStop(0, 'rgba(0,0,0,1)');
-  side.addColorStop(0.5, 'rgba(0,0,0,0)');
-  side.addColorStop(1, 'rgba(0,0,0,1)');
-  ctx.globalCompositeOperation = 'destination-out';
-  ctx.fillStyle = side;
-  ctx.fillRect(0, 0, 64, 256);
-  return new THREE.CanvasTexture(c);
-}
-
 function glowTexture() {
   const [c, ctx] = makeCanvas(64, 64);
   const grad = ctx.createRadialGradient(32, 32, 2, 32, 32, 30);
@@ -54,10 +40,10 @@ function glowTexture() {
 
 export class Nature {
   constructor(scene) {
-    // ground
+    // wet ground — slight sheen so lamp/moon smear across it
     const ground = new THREE.Mesh(
       new THREE.PlaneGeometry(400, 400),
-      new THREE.MeshStandardMaterial({ color: 0x070d08, roughness: 1 })
+      new THREE.MeshStandardMaterial({ color: 0x0a100c, roughness: 0.55, metalness: 0.15 })
     );
     ground.rotation.x = -Math.PI / 2;
     ground.receiveShadow = true;
@@ -80,6 +66,7 @@ export class Nature {
         const x = rnd(-45, 45);
         const z = rnd(-60, 20);
         if (inDeck(x, z) || z < -22) continue;
+        if (nearFire(x, z, 2)) continue;
         const s = rnd(0.6, 1.7);
         for (let k = 0; k < 2; k++) {
           d.position.set(x, 0, z);
@@ -96,7 +83,7 @@ export class Nature {
       scene.add(mesh);
     }
 
-    // pine trees (dark silhouettes)
+    // pine trees (dark silhouettes, kept clear of paths and hangouts)
     {
       const geo = new THREE.ConeGeometry(1, 1, 7);
       const mat = new THREE.MeshBasicMaterial({ color: 0x060a08 });
@@ -110,6 +97,7 @@ export class Nature {
         const z = rnd(-110, 18);
         if (inDeck(x, z)) continue;
         if (z < -22 && z > -95 && Math.abs(x) < 60) continue; // keep the lake view open
+        if (nearFire(x, z, 4.5) || inShed(x, z) || nearBench(x, z)) continue;
         const w = rnd(3, 6.5);
         const h = rnd(7, 15);
         d.position.set(x, h / 2 - 0.2, z);

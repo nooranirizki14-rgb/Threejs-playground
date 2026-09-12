@@ -1,18 +1,23 @@
-# SFX — drop real recordings here
+# SFX — real + studio-crafted sound
 
-SIT plays **real recorded sound only**. No synthesized audio ships with the game.
-If a file is missing, that sound is simply silent.
+Sound ships with the game. See `CREDITS.md` for exactly where each file
+came from and its license.
 
 | File | Used as |
 |---|---|
-| `rain.mp3` | Rain loop (should loop seamlessly, stereo, 5+ seconds) |
-| `thunder.mp3` | Thunder clap after each lightning strike |
-| `click.mp3` | Lamp switch click when toggling lights (L) |
+| `rain.mp3` | Rain loop |
+| `thunder.mp3` | Thunder clap after each strike (delayed by distance) |
+| `fire.mp3` | Campfire crackle (louder near the fire) |
+| `crickets.mp3` | Night crickets (fade in when rain stops) |
+| `click.mp3` | Lamp switch click |
+| `step.mp3` / `step2.mp3` | Footsteps while walking |
 
-Tips:
+## Use your own recordings
 
-- Best rain: record your own roof / porch in the rain with a phone.
-- Or download from [Freesound](https://freesound.org) — check each
-  sample's license (most need attribution, some are CC0).
-- Keep files smallish (64–128 kbps mono/stereo mp3 is fine).
-- Just drop the files in this folder and reload — no code changes needed.
+Every file is hot-swappable — record your own porch in the rain with a
+phone (genuinely the best rain source), name it the same, drop it here,
+reload. No code changes needed. Missing files are simply silent.
+
+Tips: [Freesound](https://freesound.org) for field recordings (check each
+sample's license — most need attribution, some are CC0). Keep mp3s smallish
+(64–128 kbps is fine for ambience).

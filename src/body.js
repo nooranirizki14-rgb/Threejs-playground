@@ -45,6 +45,11 @@ export class Body {
     this.group = g;
   }
 
+  sitAt(x, y, z, rotY) {
+    this.group.position.set(x, y, z);
+    this.group.rotation.y = rotY;
+  }
+
   setVisible(v) {
     this.group.visible = v;
   }

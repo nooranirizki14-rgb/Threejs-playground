@@ -28,6 +28,16 @@ export class World {
 
     this.moon = new THREE.DirectionalLight(0xb8c4e8, 0.5);
     this.moon.position.set(-30, 45, -110);
+    this.moon.castShadow = true;
+    this.moon.shadow.mapSize.set(1024, 1024);
+    this.moon.shadow.camera.left = -28;
+    this.moon.shadow.camera.right = 28;
+    this.moon.shadow.camera.top = 28;
+    this.moon.shadow.camera.bottom = -28;
+    this.moon.shadow.camera.near = 20;
+    this.moon.shadow.camera.far = 260;
+    this.moon.shadow.bias = -0.0004;
+    this.moon.shadow.normalBias = 0.05;
     this.scene.add(this.moon);
 
     window.addEventListener('resize', () => this.onResize());

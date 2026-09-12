@@ -1,7 +1,7 @@
-import { rnd } from './utils.js';
+import { clamp, rnd } from './utils.js';
 
-// Real-recordings-first audio: loads mp3s from public/sfx/.
-// Missing files = silence (never placeholders). See public/sfx/README.md.
+// Real-recordings-first audio: loops (rain, fire, crickets), one-shots
+// (thunder, lamp click, footsteps). Missing files = silence. See CREDITS.md.
 const base = import.meta.env.BASE_URL || './';
 
 export class AudioEngine {
@@ -13,6 +13,12 @@ export class AudioEngine {
     this.cache = {};
     this.rainSrc = null;
     this.rainGain = null;
+    this.fireSrc = null;
+    this.fireGain = null;
+    this.cricketSrc = null;
+    this.cricketGain = null;
+    this.stepTried = false;
+    this.stepBufs = [];
   }
 
   unlock() {
@@ -47,25 +53,65 @@ export class AudioEngine {
     }
   }
 
-  async startRain() {
-    if (!this.ready || this.rainSrc) return;
-    const buf = await this.load('rain');
-    if (!buf) return;
-    this.rainSrc = this.ctx.createBufferSource();
-    this.rainSrc.buffer = buf;
-    this.rainSrc.loop = true;
-    this.rainGain = this.ctx.createGain();
-    this.rainGain.gain.value = 0.5;
-    this.rainSrc.connect(this.rainGain);
-    this.rainGain.connect(this.master);
-    this.rainSrc.start();
+  async startLoop(name, volume) {
+    if (!this.ready) return null;
+    const buf = await this.load(name);
+    if (!buf) return null;
+    const src = this.ctx.createBufferSource();
+    src.buffer = buf;
+    src.loop = true;
+    const gain = this.ctx.createGain();
+    gain.gain.value = volume;
+    src.connect(gain);
+    gain.connect(this.master);
+    src.start();
+    return { src, gain };
+  }
+
+  async startAmbience() {
+    if (!this.ready) return;
+    if (!this.rainSrc) {
+      const r = await this.startLoop('rain', 0.5);
+      if (r) {
+        this.rainSrc = r.src;
+        this.rainGain = r.gain;
+      }
+    }
+    if (!this.fireSrc) {
+      const f = await this.startLoop('fire', 0);
+      if (f) {
+        this.fireSrc = f.src;
+        this.fireGain = f.gain;
+      }
+    }
+    if (!this.cricketSrc) {
+      const c = await this.startLoop('crickets', 0);
+      if (c) {
+        this.cricketSrc = c.src;
+        this.cricketGain = c.gain;
+      }
+    }
   }
 
   setRain(on) {
-    if (!this.ready || !this.rainGain) return;
+    if (!this.ready) return;
     const t = this.ctx.currentTime;
-    this.rainGain.gain.cancelScheduledValues(t);
-    this.rainGain.gain.linearRampToValueAtTime(on ? 0.5 : 0.0, t + 1.2);
+    if (this.rainGain) {
+      this.rainGain.gain.cancelScheduledValues(t);
+      this.rainGain.gain.linearRampToValueAtTime(on ? 0.5 : 0.0, t + 1.2);
+    }
+    // crickets come out when the rain stops
+    if (this.cricketGain) {
+      this.cricketGain.gain.cancelScheduledValues(t);
+      this.cricketGain.gain.linearRampToValueAtTime(on ? 0.0 : 0.4, t + 2.0);
+    }
+  }
+
+  updateFire(dt, dist) {
+    if (!this.ready || !this.fireGain) return;
+    const target = Math.pow(clamp(1 - dist / 24, 0, 1), 1.5) * 0.7;
+    const cur = this.fireGain.gain.value;
+    this.fireGain.gain.value = cur + (target - cur) * Math.min(1, dt * 3);
   }
 
   async thunder() {
@@ -90,6 +136,25 @@ export class AudioEngine {
     src.buffer = buf;
     const g = this.ctx.createGain();
     g.gain.value = 0.5;
+    src.connect(g);
+    g.connect(this.master);
+    src.start();
+  }
+
+  async step() {
+    if (!this.ready) return;
+    if (!this.stepTried) {
+      this.stepTried = true;
+      const bufs = await Promise.all([this.load('step'), this.load('step2')]);
+      this.stepBufs = bufs.filter(Boolean);
+    }
+    if (!this.stepBufs.length) return;
+    const buf = this.stepBufs[(Math.random() * this.stepBufs.length) | 0];
+    const src = this.ctx.createBufferSource();
+    src.buffer = buf;
+    src.playbackRate.value = rnd(0.9, 1.1);
+    const g = this.ctx.createGain();
+    g.gain.value = 0.22;
     src.connect(g);
     g.connect(this.master);
     src.start();
