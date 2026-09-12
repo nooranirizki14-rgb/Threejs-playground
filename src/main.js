@@ -1,10 +1,7 @@
 import * as THREE from 'three';
-import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { ElasticMesh } from './elastic.js';
-import { buildMorty } from './morty.js';
-import { Boing } from './boing.js';
 
-// ELASTIC MORTY — grab his face and pull. He doesn't mind. Probably.
+// FIRST PERSON ON THE BASEPLATE — click to capture the mouse,
+// WASD to walk, SPACE to jump. You stay on the plate.
 
 const container = document.getElementById('scene');
 let renderer;
@@ -25,11 +22,10 @@ container.appendChild(renderer.domElement);
 const canvas = renderer.domElement;
 
 const scene = new THREE.Scene();
-const CAM_HOME = new THREE.Vector3(0.4, 0.35, 4.4);
-const camera = new THREE.PerspectiveCamera(38, window.innerWidth / window.innerHeight, 0.1, 50);
-camera.position.copy(CAM_HOME);
+const camera = new THREE.PerspectiveCamera(72, window.innerWidth / window.innerHeight, 0.05, 60);
+camera.rotation.order = 'YXZ';
 
-scene.add(new THREE.HemisphereLight(0xbcd0ff, 0x1a1410, 0.7));
+scene.add(new THREE.HemisphereLight(0xbcd0ff, 0x1a1410, 0.9));
 const key = new THREE.DirectionalLight(0xfff1dd, 2.2);
 key.position.set(2.5, 4, 3);
 key.castShadow = true;
@@ -55,7 +51,7 @@ ground.position.y = -1.42;
 ground.receiveShadow = true;
 scene.add(ground);
 
-// display base plate: dark disc, glowing green rim, short stem
+// the baseplate: dark disc, glowing green rim, short stem
 const plateMat = new THREE.MeshStandardMaterial({ color: 0x1a2030, metalness: 0.65, roughness: 0.35 });
 const plate = new THREE.Mesh(new THREE.CylinderGeometry(1.0, 1.12, 0.14, 48), plateMat);
 plate.position.y = -1.22;
@@ -74,124 +70,93 @@ stem.position.y = -1.35;
 stem.castShadow = true;
 scene.add(stem);
 
-const morty = buildMorty();
-scene.add(morty.mesh, morty.pupilL, morty.pupilR);
-const elastic = new ElasticMesh(morty.mesh);
-const boing = new Boing();
+// --- first-person player, standing on the plate ---
+const EYE = 1.6;
+const PLATE_TOP = -1.15;
+const MAX_R = 0.8; // invisible edge: you stay on the plate
+const SPEED = 2.6;
+const player = { x: 0, z: 0, y: PLATE_TOP, vy: 0 };
+let yaw = 0;
+let pitch = -0.05;
+let bobPhase = 0;
+const keys = {};
 
-const controls = new OrbitControls(camera, canvas);
-controls.enableDamping = true;
-controls.target.set(0, 0, 0);
-controls.minDistance = 2.6;
-controls.maxDistance = 8;
-controls.maxPolarAngle = 1.7;
-controls.autoRotateSpeed = 1.2;
+window.addEventListener('keydown', (e) => {
+  keys[e.code] = true;
+  if (e.code === 'Space') e.preventDefault();
+});
+window.addEventListener('keyup', (e) => {
+  keys[e.code] = false;
+});
 
-function resetView() {
-  camera.position.copy(CAM_HOME);
-  controls.target.set(0, 0, 0);
-  controls.update();
-}
-
-// --- pulling ---
-const raycaster = new THREE.Raycaster();
-const ndc = new THREE.Vector2();
-const grabPlane = new THREE.Plane();
-const hitP = new THREE.Vector3();
-let dragging = false;
-let lastInteract = performance.now();
-
-function setNDC(e) {
-  ndc.x = (e.clientX / window.innerWidth) * 2 - 1;
-  ndc.y = -(e.clientY / window.innerHeight) * 2 + 1;
-}
-
-canvas.addEventListener('pointerdown', (e) => {
-  boing.ensure();
-  lastInteract = performance.now();
-  setNDC(e);
-  raycaster.setFromCamera(ndc, camera);
-  const hit = raycaster.intersectObject(morty.mesh, false)[0];
-  if (hit) {
-    dragging = true;
-    controls.enabled = false;
-    controls.autoRotate = false;
-    elastic.grab(hit.point);
-    const n = new THREE.Vector3();
-    camera.getWorldDirection(n);
-    grabPlane.setFromNormalAndCoplanarPoint(n, hit.point);
-    try { canvas.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
+const overlay = document.getElementById('play');
+let locked = false;
+overlay.addEventListener('click', () => {
+  try {
+    const p = canvas.requestPointerLock();
+    if (p && p.catch) p.catch(() => {});
+  } catch (e) { /* ignore */ }
+});
+// touch devices: tap to dismiss, drag to look
+overlay.addEventListener('touchstart', () => overlay.classList.add('hidden'), { passive: true });
+document.addEventListener('pointerlockchange', () => {
+  locked = document.pointerLockElement === canvas;
+  overlay.classList.toggle('hidden', locked);
+});
+document.addEventListener('pointerlockerror', () => {
+  overlay.querySelector('p').textContent = 'pointer lock blocked — try Chrome on desktop';
+});
+document.addEventListener('mousemove', (e) => {
+  if (!locked) return;
+  yaw -= e.movementX * 0.0023;
+  pitch -= e.movementY * 0.0023;
+  pitch = Math.max(-1.55, Math.min(1.55, pitch));
+});
+let lastT = null;
+canvas.addEventListener('touchstart', (e) => {
+  lastT = e.touches[0];
+}, { passive: true });
+canvas.addEventListener('touchmove', (e) => {
+  const t = e.touches[0];
+  if (lastT) {
+    yaw -= (t.clientX - lastT.clientX) * 0.005;
+    pitch -= (t.clientY - lastT.clientY) * 0.005;
+    pitch = Math.max(-1.55, Math.min(1.55, pitch));
   }
-});
+  lastT = t;
+}, { passive: true });
 
-canvas.addEventListener('pointermove', (e) => {
-  lastInteract = performance.now();
-  setNDC(e);
-  if (!dragging) return;
-  raycaster.setFromCamera(ndc, camera);
-  if (raycaster.ray.intersectPlane(grabPlane, hitP)) elastic.dragTo(hitP);
-});
-
-function endDrag() {
-  if (!dragging) return;
-  const pull = elastic.release();
-  dragging = false;
-  controls.enabled = true;
-  lastInteract = performance.now();
-  if (pull > 0.12) boing.boing(pull);
-}
-canvas.addEventListener('pointerup', endDrag);
-canvas.addEventListener('pointercancel', endDrag);
-
-canvas.addEventListener('dblclick', (e) => {
-  boing.ensure();
-  lastInteract = performance.now();
-  setNDC(e);
-  raycaster.setFromCamera(ndc, camera);
-  const hit = raycaster.intersectObject(morty.mesh, false)[0];
-  if (hit) {
-    elastic.poke(hit.point);
-    boing.blip();
+function updatePlayer(dt) {
+  const f = (keys.KeyW || keys.ArrowUp ? 1 : 0) - (keys.KeyS || keys.ArrowDown ? 1 : 0);
+  const s = (keys.KeyD || keys.ArrowRight ? 1 : 0) - (keys.KeyA || keys.ArrowLeft ? 1 : 0);
+  const sin = Math.sin(yaw), cos = Math.cos(yaw);
+  let dx = -sin * f + cos * s;
+  let dz = -cos * f - sin * s;
+  const len = Math.hypot(dx, dz);
+  if (len > 0.01) {
+    dx = (dx / len) * SPEED * dt;
+    dz = (dz / len) * SPEED * dt;
+    player.x += dx;
+    player.z += dz;
+    bobPhase += dt * 9;
   }
-});
-
-// --- UI ---
-document.getElementById('jelly').addEventListener('input', (e) => {
-  elastic.stiffness = Number(e.target.value);
-});
-document.getElementById('btn-reset').addEventListener('click', () => {
-  elastic.reset();
-  resetView();
-  lastInteract = performance.now();
-});
-document.getElementById('btn-poke').addEventListener('click', () => {
-  boing.ensure();
-  lastInteract = performance.now();
-  const p = new THREE.Vector3(
-    Math.random() - 0.5,
-    Math.random() * 0.8 - 0.3,
-    1
-  ).normalize().multiplyScalar(0.95);
-  elastic.poke(p, 3.5);
-  boing.blip();
-});
-
-// --- pupils ride the deformed surface + follow your cursor ---
-const aPos = new THREE.Vector3();
-const aNrm = new THREE.Vector3();
-const look = new THREE.Vector3();
-const camRight = new THREE.Vector3();
-const camUp = new THREE.Vector3();
-
-function placePupil(pupil, anchorIdx) {
-  elastic.anchor(anchorIdx, aPos, aNrm);
-  camRight.setFromMatrixColumn(camera.matrixWorld, 0);
-  camUp.setFromMatrixColumn(camera.matrixWorld, 1);
-  const mx = Math.max(-1, Math.min(1, ndc.x));
-  const my = Math.max(-1, Math.min(1, ndc.y));
-  look.copy(camRight).multiplyScalar(mx * 0.05).addScaledVector(camUp, my * 0.05);
-  look.addScaledVector(aNrm, -look.dot(aNrm)); // keep it on the tangent plane
-  pupil.position.copy(aPos).addScaledVector(aNrm, 0.015).add(look);
+  // stay on the plate
+  const r = Math.hypot(player.x, player.z);
+  if (r > MAX_R) {
+    player.x *= MAX_R / r;
+    player.z *= MAX_R / r;
+  }
+  // jump + gravity, landing back on the plate
+  if (keys.Space && player.y <= PLATE_TOP + 0.001) player.vy = 4.2;
+  player.vy -= 11 * dt;
+  player.y += player.vy * dt;
+  if (player.y <= PLATE_TOP) {
+    player.y = PLATE_TOP;
+    player.vy = 0;
+  }
+  const bob = len > 0.01 ? Math.sin(bobPhase) * 0.03 : 0;
+  camera.position.set(player.x, player.y + EYE + bob, player.z);
+  camera.rotation.set(pitch, yaw, 0);
 }
 
 window.addEventListener('resize', () => {
@@ -205,12 +170,8 @@ function frame(now) {
   requestAnimationFrame(frame);
   const dt = Math.min((now - last) / 1000, 0.05);
   last = now;
-  controls.autoRotate = !dragging && now - lastInteract > 6000;
-  controls.update();
-  elastic.update(dt);
-  placePupil(morty.pupilL, morty.anchorL);
-  placePupil(morty.pupilR, morty.anchorR);
+  updatePlayer(dt);
   renderer.render(scene, camera);
-  window.__mortyOK = true;
+  window.__bootOK = true;
 }
 requestAnimationFrame(frame);

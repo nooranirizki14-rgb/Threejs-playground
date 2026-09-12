@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Elastic Morty — pull his face</title>
+  <title>Baseplate — first person</title>
   <link rel="stylesheet" href="./src/style.css" />
   <script>
     window.addEventListener('error', function (e) {
@@ -14,7 +14,7 @@
       }
     }, true);
     setTimeout(function () {
-      if (!window.__mortyOK) {
+      if (!window.__bootOK) {
         var el = document.getElementById('err');
         if (el && el.classList.contains('hidden')) {
           el.classList.remove('hidden');
@@ -27,16 +27,14 @@
 <body>
   <div id="err" class="hidden"></div>
   <div id="scene"></div>
+  <div id="cross"></div>
   <div class="ui">
-    <h1>ELASTIC <span>MORTY</span></h1>
-    <p class="hint">drag his face to pull · double-click to poke · drag the background to orbit · scroll to zoom</p>
+    <h1>BASE<span>PLATE</span></h1>
+    <p class="hint">click to play · WASD move · mouse look · SPACE jump · touch: drag to look</p>
   </div>
-  <div class="panel">
-    <span class="lbl">🍮 jelly</span>
-    <input id="jelly" type="range" min="40" max="220" value="110" />
-    <span class="lbl">firm 🗿</span>
-    <button id="btn-poke">poke 👉</button>
-    <button id="btn-reset">reset</button>
+  <div id="play">
+    <h2>▶ CLICK TO PLAY</h2>
+    <p>you are standing on the plate</p>
   </div>
   <script type="module" src="./src/main.js"></script>
 </body>
