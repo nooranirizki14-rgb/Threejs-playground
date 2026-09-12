@@ -238,6 +238,36 @@ export class Cabin {
     bedG.add(bedBase, rim);
     scene.add(bedG);
 
+    // wood stove with a kettle (always warm)
+    const stoveG = new THREE.Group();
+    stoveG.position.set(-3.0, 0, 6.6);
+    const iron = new THREE.MeshStandardMaterial({ color: 0x1a1a1c, metalness: 0.6, roughness: 0.6 });
+    const stoveBody = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.9, 0.6), iron);
+    stoveBody.position.y = 0.57;
+    stoveBody.castShadow = true;
+    const pipe = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.09, 1.9, 8), iron);
+    pipe.position.y = 1.95;
+    const stoveDoor = new THREE.Mesh(
+      new THREE.PlaneGeometry(0.34, 0.26),
+      new THREE.MeshStandardMaterial({
+        color: 0x140802, emissive: 0xff6a20, emissiveIntensity: 1.6, roughness: 0.5,
+      })
+    );
+    stoveDoor.position.set(0.36, 0.5, 0);
+    stoveDoor.rotation.y = Math.PI / 2;
+    const kettle = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.12, 0.14, 0.18, 10),
+      new THREE.MeshStandardMaterial({ color: 0x2a2c30, metalness: 0.8, roughness: 0.4 })
+    );
+    kettle.position.set(0, 1.11, 0);
+    stoveG.add(stoveBody, pipe, stoveDoor, kettle);
+    scene.add(stoveG);
+    const stoveLight = new THREE.PointLight(0xff7028, 5, 6, 2);
+    stoveLight.position.set(-2.6, 0.7, 6.6);
+    scene.add(stoveLight);
+    addAO(scene, -3.0, 0.145, 6.6, 1.2, 1.1, 0.9);
+    this.circles.push({ x: -3.0, z: 6.6, r: 0.6 });
+
     // colliders: wall segments, room shell, exterior blockers
     this.boxes.push({ x0: -7.5, x1: 1.975, z0: 5.45, z1: 5.75 });   // front wall L
     this.boxes.push({ x0: 3.025, x1: 7.5, z0: 5.45, z1: 5.75 });    // front wall R

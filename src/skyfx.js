@@ -1,8 +1,8 @@
 import * as THREE from 'three';
 import { rnd, makeCanvas } from './utils.js';
 
-// Sky dome gradient, drifting storm clouds, lightning, lake mist,
-// fireflies, lamp moths.
+// Sky dome, aurora, meteors, storm clouds, lightning, lake mist,
+// fireflies, lamp moths. rainLevel: 0 clear, 1 drizzle, 2 storm.
 function softTexture() {
   const [c, ctx] = makeCanvas(128, 128);
   const grad = ctx.createRadialGradient(64, 64, 4, 64, 64, 62);
@@ -41,6 +41,8 @@ export class SkyFX {
     this.hemi = hemi;
     this.baseHemi = hemi.intensity;
     this.onThunder = null;
+    this.onMeteor = null;
+    this.level = 2;
 
     // gradient night dome (replaces the flat background color)
     this.domeUniforms = { uFlash: { value: 0 } };
@@ -75,6 +77,59 @@ export class SkyFX {
     dome.frustumCulled = false;
     dome.renderOrder = -10;
     scene.add(dome);
+
+    // aurora curtains high in the north sky
+    this.auroraUniforms = { uTime: { value: 0 }, uClear: { value: 0.25 } };
+    const aurora = new THREE.Mesh(
+      new THREE.PlaneGeometry(320, 70),
+      new THREE.ShaderMaterial({
+        transparent: true,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+        uniforms: this.auroraUniforms,
+        vertexShader: /* glsl */`
+          varying vec2 vUv;
+          void main() {
+            vUv = uv;
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+          }
+        `,
+        fragmentShader: /* glsl */`
+          uniform float uTime;
+          uniform float uClear;
+          varying vec2 vUv;
+          void main() {
+            float rays = sin(vUv.x * 36.0 + sin(vUv.x * 13.0 + uTime * 0.4) * 1.5 + uTime * 0.25);
+            rays = smoothstep(-0.2, 1.0, rays);
+            float vert = smoothstep(0.0, 0.25, vUv.y) * (1.0 - smoothstep(0.45, 1.0, vUv.y));
+            float shimmer = 0.75 + 0.25 * sin(uTime * 1.3 + vUv.x * 20.0);
+            vec3 col = mix(vec3(0.1, 0.9, 0.45), vec3(0.5, 0.3, 0.9), smoothstep(0.1, 0.7, vUv.y));
+            float a = rays * vert * shimmer * 0.4 * uClear;
+            gl_FragColor = vec4(col * a, a);
+          }
+        `,
+      })
+    );
+    aurora.position.set(0, 95, -190);
+    aurora.frustumCulled = false;
+    aurora.renderOrder = -9;
+    scene.add(aurora);
+
+    // meteors (clear skies only)
+    this.meteors = [];
+    for (let i = 0; i < 3; i++) {
+      const g = new THREE.BufferGeometry();
+      g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(6), 3));
+      const mat = new THREE.LineBasicMaterial({
+        color: 0xd8e4ff, transparent: true, opacity: 0,
+        blending: THREE.AdditiveBlending, depthWrite: false, fog: false,
+      });
+      const line = new THREE.Line(g, mat);
+      line.frustumCulled = false;
+      scene.add(line);
+      this.meteors.push({ line, mat, t: 1e9, dur: 0.9, x: 0, y: 0, z: 0, vx: 0, vy: 0 });
+    }
+    this.meteorTimer = rnd(6, 14);
 
     // drifting storm clouds (lightning flashes through them)
     const cloudTex = cloudTexture();
@@ -183,13 +238,26 @@ export class SkyFX {
     }
     this.boltGeo.getAttribute('position').needsUpdate = true;
     this.flash = 1;
-    this.nextStrike = rnd(6, 18);
+    this.nextStrike = this.level === 2 ? rnd(6, 18) : rnd(18, 40);
     if (this.onThunder) this.onThunder();
   }
 
-  update(dt, t, rainOn, lampOn) {
-    if (rainOn) {
-      this.nextStrike -= dt;
+  launchMeteor() {
+    const m = this.meteors.find((k) => k.t >= k.dur);
+    if (!m) return;
+    m.t = 0;
+    m.x = rnd(-150, 150);
+    m.y = rnd(90, 160);
+    m.z = rnd(-260, -120);
+    m.vx = rnd(-70, -40);
+    m.vy = rnd(-40, -25);
+    if (this.onMeteor) this.onMeteor();
+  }
+
+  update(dt, t, rainLevel, lampOn) {
+    this.level = rainLevel;
+    if (rainLevel >= 1) {
+      this.nextStrike -= dt * (rainLevel === 2 ? 1 : 0.35);
       if (this.nextStrike <= 0) this.strike();
     }
     if (this.flash > 0) this.flash = Math.max(0, this.flash - dt * 3.2);
@@ -197,8 +265,36 @@ export class SkyFX {
     this.boltMat.opacity = f * 0.95;
     this.domeUniforms.uFlash.value = f * 0.9;
     this.hemi.intensity = this.baseHemi + f * 2.2;
-    for (const m of this.cloudMats) {
-      m.color.setRGB(0.055 + f * 0.5, 0.078 + f * 0.55, 0.125 + f * 0.6);
+    for (const cm of this.cloudMats) {
+      cm.color.setRGB(0.055 + f * 0.5, 0.078 + f * 0.55, 0.125 + f * 0.6);
+    }
+
+    // aurora breathes stronger on clear nights
+    this.auroraUniforms.uTime.value = t;
+    const clearTarget = rainLevel === 0 ? 1 : 0.25;
+    this.auroraUniforms.uClear.value += (clearTarget - this.auroraUniforms.uClear.value) * Math.min(1, dt);
+
+    // meteors on clear nights
+    if (rainLevel === 0) {
+      this.meteorTimer -= dt;
+      if (this.meteorTimer <= 0) {
+        this.meteorTimer = rnd(8, 22);
+        this.launchMeteor();
+      }
+    }
+    for (const m of this.meteors) {
+      if (m.t >= m.dur) {
+        m.mat.opacity = 0;
+        continue;
+      }
+      m.t += dt;
+      const hx = m.x + m.vx * m.t;
+      const hy = m.y + m.vy * m.t;
+      const a = m.line.geometry.getAttribute('position').array;
+      a[0] = hx; a[1] = hy; a[2] = m.z;
+      a[3] = hx - m.vx * 0.12; a[4] = hy - m.vy * 0.12; a[5] = m.z;
+      m.line.geometry.getAttribute('position').needsUpdate = true;
+      m.mat.opacity = Math.sin(Math.min(1, m.t / m.dur) * Math.PI) * 0.9;
     }
 
     for (const s of this.clouds) {
@@ -210,8 +306,8 @@ export class SkyFX {
       if (s.position.x > 75) s.position.x = -75;
     }
 
-    this.fireflies.visible = !rainOn;
-    if (!rainOn) {
+    this.fireflies.visible = rainLevel === 0;
+    if (rainLevel === 0) {
       const attr = this.ffGeo.getAttribute('position');
       const a = attr.array;
       for (let i = 0; i < a.length / 3; i++) {

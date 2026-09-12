@@ -187,7 +187,8 @@ export class FireCamp {
   update(dt, t) {
     this.t += dt;
     const n = Math.sin(t * 9.3) * 0.5 + Math.sin(t * 23.7) * 0.3 + Math.sin(t * 4.1) * 0.2;
-    this.light.intensity = 30 + n * 7;
+    this.boost = Math.max(0, (this.boost || 0) - dt * 6);
+    this.light.intensity = 30 + n * 7 + this.boost;
     this.light.position.x = Math.sin(t * 7.7) * 0.05;
     this.light.position.z = Math.cos(t * 6.3) * 0.05;
 

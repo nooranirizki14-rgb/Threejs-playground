@@ -39,3 +39,16 @@ dedicated to the public domain (CC0) — use them anywhere:
 Want true field recordings instead? Record your own (a phone in the rain is
 genuinely great) or grab some from [Freesound](https://freesound.org), drop
 them here with the same names, reload — no code changes needed.
+
+| meow.mp3 | crafted (numpy formant sweep) | CC0, this repo |
+| purr.mp3 | crafted (brown noise + 24 Hz AM) | CC0, this repo |
+| strum_g/c/d/em/am/f.mp3 | crafted (Karplus-Strong plucks) | CC0, this repo |
+| splash.mp3 | crafted (filtered noise + droplet plinks) | CC0, this repo |
+| sizzle.mp3 | crafted (HP noise + pops) | CC0, this repo |
+| chime.mp3 | crafted (inharmonic bell partials) | CC0, this repo |
+| creak.mp3 | crafted (stick-slip sweep) | CC0, this repo |
+| musicbox.mp3 | crafted (music-box waltz, 24 s loop) | CC0, this repo |
+| plip.mp3 | crafted (sine blip) | CC0, this repo |
+| catch.mp3 | crafted (3-note jingle) | CC0, this repo |
+| frogs.mp3 | crafted (croak pattern, 8 s loop) | CC0, this repo |
+| loon.mp3 | crafted (gliss wail) | CC0, this repo |

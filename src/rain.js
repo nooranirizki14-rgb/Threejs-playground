@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 
 // CYBER RAIN: dense wind-blown streaks with slow gusts, bright splash rings
-// at two heights (deck/stone + mud), shelter fade for porch roof + cabin.
+// at two heights (deck/stone + mud), shelter fade, 3 levels (off/drizzle/storm).
 function instancedQuads(count, itemSize, fill) {
   const geo = new THREE.InstancedBufferGeometry();
   const base = new THREE.PlaneGeometry(1, 1);
@@ -19,6 +19,10 @@ export class Rain {
   constructor(scene, { streaks = 2600, rings = 340 } = {}) {
     this.group = new THREE.Group();
     scene.add(this.group);
+    this.maxStreaks = streaks;
+    this.maxRings = rings;
+    this.baseStreakOp = 0.42;
+    this.baseRingOp = 0.65;
 
     const sgeo = instancedQuads(streaks, 4, (d, n, s) => {
       for (let i = 0; i < n; i++) {
@@ -143,14 +147,26 @@ export class Rain {
     this.ringMesh.renderOrder = 6;
     this.group.add(this.ringMesh);
 
+    this.level = 2;
     this.on = true;
     this.shelter = 1;
     this.lastT = 0;
   }
 
+  setLevel(l) {
+    this.level = l;
+    this.on = l > 0;
+    this.group.visible = this.on;
+    const frac = l === 2 ? 1 : 0.4;
+    this.streakMesh.geometry.instanceCount = Math.floor(this.maxStreaks * frac);
+    this.ringMesh.geometry.instanceCount = Math.floor(this.maxRings * frac);
+    const op = l === 1 ? 0.5 : 1;
+    this.sUniforms.uOpacity.value = this.baseStreakOp * op;
+    this.rUniforms.uOpacity.value = this.baseRingOp * op;
+  }
+
   setOn(on) {
-    this.on = on;
-    this.group.visible = on;
+    this.setLevel(on ? 2 : 0);
   }
 
   update(time, camPos, shelterTarget = 1) {

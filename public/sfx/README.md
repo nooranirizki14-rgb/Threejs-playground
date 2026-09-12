@@ -29,3 +29,7 @@ reload. No code changes needed. Missing files are simply silent.
 Tips: [Freesound](https://freesound.org) for field recordings (check each
 sample's license — most need attribution, some are CC0). Keep mp3s smallish
 (64–128 kbps is fine for ambience).
+
+### v6 LONG NIGHT additions (17, crafted with numpy, MP3 96k / musicbox 112k)
+meow, purr, strum_g/c/d/em/am/f (Karplus-Strong), splash, sizzle, chime,
+creak, musicbox (24 s loop), plip, catch, frogs (8 s loop), loon.

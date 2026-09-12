@@ -99,3 +99,27 @@ public/sfx/         15 real + crafted mp3s (see CREDITS.md)
 - Three shadow lights (lamp, campfire, moon) + contact AO blobs.
 - Quality scaler (Q) adjusts pixel ratio, bloom, and shadow resolution.
 - `npm run build` → static `dist/`, deployable anywhere.
+
+## v6 — LONG NIGHT mega-expansion 🌙
+
+The homestead after dark, stuffed full:
+
+- **Playable guitar** (porch post) — 6 Karplus-Strong chords (G C D Em Am F), keys 1-6 + F to strum, guitar wobbles
+- **Dock fishing** — grab the rod, cast from the dock end, pull on the bite (10% old boot 🥾), catches tracked in the journal
+- **Rowboat sit spot** — moored by the dock, gentle rocking
+- **Telescope scope mode** — F to look, snaps to Saturn 🪐, zoomed FOV, celestial discovery toasts
+- **Mailbox** — 5 letters, flag drops when done
+- **Miso the cat** — meows on her own, purrs + happy tail-wag when petted (F)
+- **Fence owl** — perks up and stares when owls call; admire with F
+- **Fairy ring** — step in (F) for a glow burst + chime
+- **Aurora + meteors** on clear skies, **F to wish** on a falling star 🌠
+- **Wind chimes** — pentatonic, randomized by gust
+- **Footprints + breath vapor** in the cold air
+- **Marshmallow roasting** — F at the fire, fire flares, don't walk away
+- **3-level weather** (R): storm / drizzle / clear — crickets, frogs, loons follow the sky
+- **4 new sit spots**: overlook bench, dock end, porch swing (sways!), rowboat — 8 total, tracked in journal
+- **Photo mode** (P) with flash, **night journal** (J), **couch naps** (Z)
+- **Dog tricks**: G speak, T shake (when close)
+- **Radio 3 stations**: off / lo-fi / music-box
+- **Moths** around the porch lamp, cabin **wood stove** with kettle, bookshelf + painting admires
+- 32 crafted MP3s (17 new: meow, purr, 6 strums, splash, sizzle, chime, creak, musicbox, plip, catch, frogs, loon)
