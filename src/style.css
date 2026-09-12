@@ -3,7 +3,7 @@
 html, body {
   width: 100%; height: 100%; overflow: hidden;
   font-family: 'Trebuchet MS', 'Segoe UI', sans-serif;
-  background: #05070d;
+  background: #0d1210;
 }
 
 .hidden { display: none !important; }
@@ -19,32 +19,70 @@ html, body {
 #scene { position: fixed; inset: 0; }
 #scene canvas { display: block; }
 
-.ui {
-  position: fixed; top: 22px; left: 0; right: 0;
-  text-align: center; pointer-events: none; z-index: 10;
+#hud { position: fixed; inset: 0; pointer-events: none; z-index: 10; }
+
+#data {
+  position: absolute; top: 16px; left: 16px;
+  background: rgba(6, 10, 8, 0.72); border: 1px solid rgba(103, 232, 249, 0.35);
+  border-radius: 8px; padding: 10px 14px; min-width: 190px;
+  font-family: monospace;
 }
 
-.ui h1 {
-  color: #f2f2f2; font-size: clamp(24px, 4vw, 42px);
-  letter-spacing: 4px; text-shadow: 0 2px 18px rgba(0, 0, 0, 0.7);
+#data .row {
+  display: flex; justify-content: space-between; gap: 18px;
+  color: #67e8f9; font-size: 13px; line-height: 1.9;
 }
 
-.ui h1 span { color: #97ce4c; }
+#data .row span { color: #5a6a72; }
+#data .row b { color: #e8f6ff; font-weight: bold; }
 
-.hint {
-  margin-top: 6px; color: #9aa3b8; font-size: clamp(11px, 1.6vw, 14px);
-  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.8);
+#radar {
+  position: absolute; top: 16px; right: 16px;
+  border: 1px solid rgba(103, 232, 249, 0.35); border-radius: 50%;
+  background: rgba(4, 12, 6, 0.8);
 }
 
-#speed {
-  position: fixed; bottom: 26px; right: 28px; z-index: 10;
-  color: #97ce4c; font-family: monospace; font-size: 20px; font-weight: bold;
-  text-shadow: 0 0 12px rgba(151, 206, 76, 0.5);
-  pointer-events: none;
+#dmg {
+  position: absolute; bottom: 52px; left: 16px;
+  width: 210px; height: 16px;
+  background: rgba(6, 10, 8, 0.72);
+  border: 1px solid rgba(255, 100, 100, 0.4); border-radius: 8px;
+  overflow: hidden;
 }
+
+#dmgfill {
+  height: 100%; width: 100%;
+  background: linear-gradient(90deg, #3ae05a, #b8e05a);
+  transition: width 0.3s;
+}
+
+#dmg span {
+  position: absolute; top: 0; left: 8px;
+  font-size: 11px; line-height: 16px; color: #fff;
+  font-family: monospace; letter-spacing: 2px;
+  text-shadow: 0 1px 3px #000;
+}
+
+#warn {
+  position: absolute; top: 16px; left: 50%; transform: translateX(-50%);
+  background: rgba(120, 10, 10, 0.85); color: #fff;
+  border: 1px solid #ff5555; border-radius: 8px;
+  padding: 8px 20px; font-size: 15px; font-weight: bold;
+  animation: blink 0.7s steps(2) infinite;
+}
+
+@keyframes blink { 50% { opacity: 0.55; } }
+
+#obj {
+  position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%);
+  color: #9aa3b8; font-size: 13px; white-space: nowrap;
+  text-shadow: 0 1px 6px #000;
+}
+
+#obj b { color: #ffd166; }
 
 #toast {
-  position: fixed; bottom: 34px; left: 50%; transform: translateX(-50%);
+  position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%);
   background: rgba(12, 16, 26, 0.85); color: #e8ecf5;
   border: 1px solid rgba(151, 206, 76, 0.4); border-radius: 999px;
   padding: 9px 22px; font-size: 15px; z-index: 15;
@@ -54,11 +92,12 @@ html, body {
 #play {
   position: fixed; inset: 0; z-index: 20;
   display: flex; flex-direction: column; align-items: center; justify-content: center;
-  background: rgba(5, 7, 12, 0.72); cursor: pointer;
+  background: rgba(5, 8, 6, 0.8); cursor: pointer; text-align: center;
+  padding: 0 20px;
 }
 
 #play h2 {
-  color: #97ce4c; font-size: clamp(22px, 4vw, 36px); letter-spacing: 3px;
+  color: #97ce4c; font-size: clamp(24px, 5vw, 44px); letter-spacing: 3px;
 }
 
-#play p { margin-top: 10px; color: #9aa3b8; font-size: 15px; }
+#play p { margin-top: 12px; color: #9aa3b8; font-size: 15px; }

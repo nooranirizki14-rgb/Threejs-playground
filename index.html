@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Autodrive — locked in the car</title>
+  <title>Tornado Intercept — storm research sim</title>
   <link rel="stylesheet" href="./src/style.css" />
   <script>
     window.addEventListener('error', function (e) {
@@ -27,16 +27,25 @@
 <body>
   <div id="err" class="hidden"></div>
   <div id="scene"></div>
-  <div class="ui">
-    <h1>AUTO<span>DRIVE</span></h1>
-    <p class="hint">look around · W/S cruise · A/D wheel · L lights · E door 🔒</p>
+  <div id="hud" class="hidden">
+    <div id="data">
+      <div class="row"><span>SPEED</span><b id="d-speed">0 km/h</b></div>
+      <div class="row"><span>WIND</span><b id="d-wind">0 m/s</b></div>
+      <div class="row"><span>PRESS</span><b id="d-pres">1010 hPa</b></div>
+      <div class="row"><span>TEMP</span><b id="d-temp">18°C</b></div>
+      <div class="row"><span>TORNADO</span><b id="d-tor">—</b></div>
+      <div class="row"><span>DATA</span><b id="d-data">0</b></div>
+    </div>
+    <canvas id="radar" width="150" height="150"></canvas>
+    <div id="dmg"><div id="dmgfill"></div><span>HULL</span></div>
+    <div id="warn" class="hidden"></div>
+    <div id="obj">Collect data near the tornado. Survive. <b>W/S</b> drive · <b>A/D</b> steer · <b>V</b> wipers · <b>L</b> lights · <b>M</b> mute</div>
   </div>
-  <div id="speed">50 km/h · AUTO</div>
   <div id="toast" class="hidden"></div>
   <div id="play">
-    <h2>▶ CLICK TO RIDE</h2>
-    <p>autopilot engaged. doors are locked. enjoy the night road.</p>
+    <h2>🌪 TORNADO INTERCEPT</h2>
+    <p>click to take the wheel — research vehicle, live storm</p>
   </div>
-  <script type="module" src="./src/main.js"></script>
+  <script type="module" src="./src/main.ts"></script>
 </body>
 </html>
