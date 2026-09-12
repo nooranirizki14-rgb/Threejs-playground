@@ -3,7 +3,7 @@
 html, body {
   width: 100%; height: 100%; overflow: hidden;
   font-family: 'Trebuchet MS', 'Segoe UI', sans-serif;
-  background: radial-gradient(ellipse at 50% 35%, #232c44 0%, #141a2b 45%, #07090f 100%);
+  background: #05070d;
 }
 
 .hidden { display: none !important; }
@@ -18,14 +18,6 @@ html, body {
 
 #scene { position: fixed; inset: 0; }
 #scene canvas { display: block; }
-
-#cross {
-  position: fixed; top: 50%; left: 50%;
-  width: 6px; height: 6px; margin: -3px 0 0 -3px;
-  border-radius: 50%; background: rgba(255, 255, 255, 0.85);
-  box-shadow: 0 0 6px rgba(0, 0, 0, 0.8);
-  pointer-events: none; z-index: 5;
-}
 
 .ui {
   position: fixed; top: 22px; left: 0; right: 0;
@@ -42,6 +34,14 @@ html, body {
 .hint {
   margin-top: 6px; color: #9aa3b8; font-size: clamp(11px, 1.6vw, 14px);
   text-shadow: 0 1px 8px rgba(0, 0, 0, 0.8);
+}
+
+#toast {
+  position: fixed; bottom: 34px; left: 50%; transform: translateX(-50%);
+  background: rgba(12, 16, 26, 0.85); color: #e8ecf5;
+  border: 1px solid rgba(151, 206, 76, 0.4); border-radius: 999px;
+  padding: 9px 22px; font-size: 15px; z-index: 15;
+  pointer-events: none; white-space: nowrap;
 }
 
 #play {
