@@ -6,6 +6,16 @@ html, body {
   background: radial-gradient(ellipse at 50% 35%, #232c44 0%, #141a2b 45%, #07090f 100%);
 }
 
+.hidden { display: none !important; }
+
+#err {
+  position: fixed; top: 12px; left: 50%; transform: translateX(-50%);
+  background: rgba(120, 10, 10, 0.92); color: #fff;
+  border: 1px solid #ff5555; border-radius: 10px;
+  padding: 10px 18px; font-size: 14px; z-index: 100;
+  max-width: 90vw; text-align: center;
+}
+
 #scene { position: fixed; inset: 0; }
 #scene canvas { display: block; cursor: grab; }
 #scene canvas:active { cursor: grabbing; }

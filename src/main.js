@@ -7,7 +7,15 @@ import { Boing } from './boing.js';
 // ELASTIC MORTY — grab his face and pull. He doesn't mind. Probably.
 
 const container = document.getElementById('scene');
-const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+let renderer;
+try {
+  renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+} catch (e) {
+  const el = document.getElementById('err');
+  el.classList.remove('hidden');
+  el.textContent = '🚫 WebGL unavailable in this browser — try Chrome or Edge.';
+  throw e;
+}
 renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.shadowMap.enabled = true;
@@ -173,5 +181,6 @@ function frame(now) {
   placePupil(morty.pupilL, morty.anchorL);
   placePupil(morty.pupilR, morty.anchorR);
   renderer.render(scene, camera);
+  window.__mortyOK = true;
 }
 requestAnimationFrame(frame);
