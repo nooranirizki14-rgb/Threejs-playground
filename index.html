@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>SIT — a quiet night on the porch</title>
+  <meta name="description" content="First-person sitting on a chair. Rainy porch, warm lamp, lake and mountains. Look, stand, walk, sit back down." />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🪑</text></svg>" />
+  <link rel="stylesheet" href="./src/style.css" />
+</head>
+<body>
+  <div id="scene-container"></div>
+
+  <div id="boot-error" class="overlay hidden">
+    <div class="panel">
+      <h2>⚠️ COULDN'T START</h2>
+      <p>SIT failed to boot:</p>
+      <p id="boot-error-msg" class="error-msg"></p>
+      <p class="dim">Use a recent Chrome / Edge / Firefox with hardware
+        acceleration on, and serve over http (<b>npm run dev</b>) —
+        opening index.html from disk won't work.</p>
+    </div>
+  </div>
+
+  <div id="hud" class="hidden">
+    <div id="cross"></div>
+    <div id="prompt" class="hidden"></div>
+    <div id="toast" class="hidden"></div>
+    <div id="hint">mouse look · <b>E</b> sit/stand · <b>WASD</b> walk · <b>R</b> rain · <b>L</b> lamp</div>
+    <button id="btn-act" class="hidden">E</button>
+  </div>
+
+  <div id="intro" class="overlay">
+    <div class="panel">
+      <div class="over-title">RAIN // NIGHT // PORCH</div>
+      <h1 class="title">SIT</h1>
+      <p class="subtitle">A QUIET NIGHT ON THE PORCH</p>
+      <p class="desc">You're sitting on a wooden chair. Rain on the roof,
+        a warm lamp, the lake ahead. Look around. Stand up. Walk a little.
+        Sit back down. No goals.</p>
+      <button id="btn-start" class="big-btn">🪑 &nbsp;SIT DOWN</button>
+      <div class="controls">
+        <div><kbd>MOUSE</kbd><span>look</span><kbd>E</kbd><span>stand / sit</span></div>
+        <div><kbd>WASD</kbd><span>walk</span><kbd>R</kbd><span>rain</span><kbd>L</kbd><span>lamp</span></div>
+      </div>
+      <p class="credit">Three.js + Vite · headphones + rain recommended 🎧</p>
+    </div>
+  </div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
