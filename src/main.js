@@ -25,8 +25,9 @@ container.appendChild(renderer.domElement);
 const canvas = renderer.domElement;
 
 const scene = new THREE.Scene();
+const CAM_HOME = new THREE.Vector3(0.4, 0.35, 4.4);
 const camera = new THREE.PerspectiveCamera(38, window.innerWidth / window.innerHeight, 0.1, 50);
-camera.position.set(0.4, 0.35, 4.4);
+camera.position.copy(CAM_HOME);
 
 scene.add(new THREE.HemisphereLight(0xbcd0ff, 0x1a1410, 0.7));
 const key = new THREE.DirectionalLight(0xfff1dd, 2.2);
@@ -54,6 +55,25 @@ ground.position.y = -1.42;
 ground.receiveShadow = true;
 scene.add(ground);
 
+// display base plate: dark disc, glowing green rim, short stem
+const plateMat = new THREE.MeshStandardMaterial({ color: 0x1a2030, metalness: 0.65, roughness: 0.35 });
+const plate = new THREE.Mesh(new THREE.CylinderGeometry(1.0, 1.12, 0.14, 48), plateMat);
+plate.position.y = -1.22;
+plate.castShadow = true;
+plate.receiveShadow = true;
+scene.add(plate);
+const rimRing = new THREE.Mesh(
+  new THREE.TorusGeometry(1.06, 0.025, 12, 64),
+  new THREE.MeshStandardMaterial({ color: 0x0b0e15, emissive: 0x97ce4c, emissiveIntensity: 1.6 })
+);
+rimRing.rotation.x = Math.PI / 2;
+rimRing.position.y = -1.16;
+scene.add(rimRing);
+const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.42, 0.14, 24), plateMat);
+stem.position.y = -1.35;
+stem.castShadow = true;
+scene.add(stem);
+
 const morty = buildMorty();
 scene.add(morty.mesh, morty.pupilL, morty.pupilR);
 const elastic = new ElasticMesh(morty.mesh);
@@ -66,6 +86,12 @@ controls.minDistance = 2.6;
 controls.maxDistance = 8;
 controls.maxPolarAngle = 1.7;
 controls.autoRotateSpeed = 1.2;
+
+function resetView() {
+  camera.position.copy(CAM_HOME);
+  controls.target.set(0, 0, 0);
+  controls.update();
+}
 
 // --- pulling ---
 const raycaster = new THREE.Raycaster();
@@ -133,7 +159,11 @@ canvas.addEventListener('dblclick', (e) => {
 document.getElementById('jelly').addEventListener('input', (e) => {
   elastic.stiffness = Number(e.target.value);
 });
-document.getElementById('btn-reset').addEventListener('click', () => elastic.reset());
+document.getElementById('btn-reset').addEventListener('click', () => {
+  elastic.reset();
+  resetView();
+  lastInteract = performance.now();
+});
 document.getElementById('btn-poke').addEventListener('click', () => {
   boing.ensure();
   lastInteract = performance.now();
