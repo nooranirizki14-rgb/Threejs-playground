@@ -31,6 +31,10 @@ dedicated to the public domain (CC0) — use them anywhere:
 | `hoot.mp3` (1.7 s) | two-note owl (348→330, 340→315 Hz) with vibrato |
 | `step_wood.mp3` | hollow knock (170 + 92 Hz decay + attack transient) |
 | `step_grass.mp3` | soft bandpassed swish + faint 95 Hz thump |
+| `radio.mp3` (32 s loop) | warm detuned pad, 4 mellow chords + vinyl crackle |
+| `bark.mp3` | two-note ruff (210→130 Hz sweep + harmonics + breath) |
+| `munch.mp3` | three soft smacks (lowpassed bursts + 180 Hz thump) |
+| `kibble.mp3` | kibble pour (3 kHz band) + 8 scattered taps |
 
 Want true field recordings instead? Record your own (a phone in the rain is
 genuinely great) or grab some from [Freesound](https://freesound.org), drop

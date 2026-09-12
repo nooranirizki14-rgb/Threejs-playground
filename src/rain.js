@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 
-// GPU rain: streaks + splash rings following the camera.
-// v2: denser, brighter, longer streaks so rain reads against the dark sky.
+// CYBER RAIN: dense wind-blown streaks with slow gusts, bright splash rings
+// at two heights (deck/stone + mud), shelter fade for porch roof + cabin.
 function instancedQuads(count, itemSize, fill) {
   const geo = new THREE.InstancedBufferGeometry();
   const base = new THREE.PlaneGeometry(1, 1);
@@ -16,7 +16,7 @@ function instancedQuads(count, itemSize, fill) {
 }
 
 export class Rain {
-  constructor(scene, { streaks = 1800, rings = 220 } = {}) {
+  constructor(scene, { streaks = 2600, rings = 340 } = {}) {
     this.group = new THREE.Group();
     scene.add(this.group);
 
@@ -33,8 +33,9 @@ export class Rain {
       uCamPos: { value: new THREE.Vector3() },
       uBox: { value: new THREE.Vector2(55, 55) },
       uHeight: { value: 26 },
-      uColor: { value: new THREE.Color(0xb9c4d8) },
-      uOpacity: { value: 0.34 },
+      uColor: { value: new THREE.Color(0xcfd8ea) },
+      uOpacity: { value: 0.42 },
+      uShelter: { value: 1 },
     };
     const smat = new THREE.ShaderMaterial({
       uniforms: this.sUniforms,
@@ -47,19 +48,21 @@ export class Rain {
         uniform vec3 uCamPos;
         uniform vec2 uBox;
         uniform float uHeight;
+        uniform float uShelter;
         varying float vAlpha;
         varying vec2 vUv;
         void main() {
           vUv = uv;
+          float gust = 0.5 + 0.5 * sin(uTime * 0.23) * sin(uTime * 0.11 + 1.7);
           float y = mod(aData.z * uHeight - uTime * aData.w, uHeight);
-          vec2 drift = vec2(uTime * 1.2, uTime * 0.3);
+          vec2 drift = vec2(uTime * (1.2 + gust * 4.0), uTime * 0.3);
           vec2 rel = mod(aData.xy * uBox + drift - uCamPos.xz, uBox) - uBox * 0.5;
           vec3 world = vec3(uCamPos.x + rel.x, y, uCamPos.z + rel.y);
           vec4 mv = viewMatrix * vec4(world, 1.0);
           float dist = max(-mv.z, 0.001);
-          mv.xy += vec2(position.x * 0.05 + position.y * 0.17, position.y * 1.25);
+          mv.xy += vec2(position.x * 0.06 + position.y * (0.17 + gust * 0.4), position.y * 1.5);
           gl_Position = projectionMatrix * mv;
-          vAlpha = (1.0 - smoothstep(22.0, 50.0, dist)) * smoothstep(0.4, 2.5, dist);
+          vAlpha = (1.0 - smoothstep(22.0, 50.0, dist)) * smoothstep(0.4, 2.5, dist) * uShelter;
         }
       `,
       fragmentShader: /* glsl */`
@@ -91,8 +94,9 @@ export class Rain {
       uTime: { value: 0 },
       uCamPos: { value: new THREE.Vector3() },
       uBox: { value: 50 },
-      uColor: { value: new THREE.Color(0x8fa0b8) },
-      uOpacity: { value: 0.55 },
+      uColor: { value: new THREE.Color(0x9fb0c8) },
+      uOpacity: { value: 0.65 },
+      uShelter: { value: 1 },
     };
     const rmat = new THREE.ShaderMaterial({
       uniforms: this.rUniforms,
@@ -104,15 +108,19 @@ export class Rain {
         uniform float uTime;
         uniform vec3 uCamPos;
         uniform float uBox;
+        uniform float uShelter;
         varying float vT;
         varying vec2 vUv;
+        varying float vSh;
         void main() {
           vUv = uv;
+          vSh = uShelter;
           float t = fract(uTime * aData.w + aData.z);
           vT = t;
           float r = mix(0.05, 0.45, t);
           vec2 rel = mod(aData.xy * uBox - uCamPos.xz, uBox) - uBox * 0.5;
-          vec3 world = vec3(uCamPos.x + rel.x, 0.14, uCamPos.z + rel.y);
+          float yy = mix(0.02, 0.14, step(0.5, fract(aData.z * 7.0)));
+          vec3 world = vec3(uCamPos.x + rel.x, yy, uCamPos.z + rel.y);
           world.xz += position.xy * r * 2.0;
           gl_Position = projectionMatrix * viewMatrix * vec4(world, 1.0);
         }
@@ -122,10 +130,11 @@ export class Rain {
         uniform float uOpacity;
         varying float vT;
         varying vec2 vUv;
+        varying float vSh;
         void main() {
           float d = length(vUv - 0.5) * 2.0;
           float ring = smoothstep(0.5, 0.82, d) * (1.0 - smoothstep(0.82, 1.0, d));
-          gl_FragColor = vec4(uColor, ring * (1.0 - vT) * uOpacity);
+          gl_FragColor = vec4(uColor, ring * (1.0 - vT) * uOpacity * vSh);
         }
       `,
     });
@@ -135,6 +144,8 @@ export class Rain {
     this.group.add(this.ringMesh);
 
     this.on = true;
+    this.shelter = 1;
+    this.lastT = 0;
   }
 
   setOn(on) {
@@ -142,11 +153,16 @@ export class Rain {
     this.group.visible = on;
   }
 
-  update(time, camPos) {
+  update(time, camPos, shelterTarget = 1) {
+    const dt = Math.min(0.1, Math.max(0.001, time - this.lastT));
+    this.lastT = time;
+    this.shelter += (shelterTarget - this.shelter) * Math.min(1, dt * 3);
     if (!this.on) return;
     this.sUniforms.uTime.value = time;
     this.sUniforms.uCamPos.value.copy(camPos);
+    this.sUniforms.uShelter.value = this.shelter;
     this.rUniforms.uTime.value = time;
     this.rUniforms.uCamPos.value.copy(camPos);
+    this.rUniforms.uShelter.value = this.shelter;
   }
 }

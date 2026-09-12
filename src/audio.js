@@ -1,7 +1,7 @@
 import { clamp, rnd } from './utils.js';
 
-// Real + crafted audio: loops (rain, fire, crickets, wind), one-shots
-// (thunder, lamp click, surface footsteps, door thunk, owl). Missing
+// Real + crafted audio: loops (rain, fire, crickets, wind, radio), one-shots
+// (thunder, click, footsteps, thunk, hoot, bark, munch, kibble). Missing
 // files = silence. See public/sfx/CREDITS.md.
 const base = import.meta.env.BASE_URL || './';
 
@@ -20,6 +20,10 @@ export class AudioEngine {
     this.cricketGain = null;
     this.windSrc = null;
     this.windGain = null;
+    this.radioSrc = null;
+    this.radioGain = null;
+    this.rainOn = true;
+    this.indoor = false;
     this.surfTried = {};
     this.surfBufs = {};
   }
@@ -101,20 +105,46 @@ export class AudioEngine {
         this.windGain = w.gain;
       }
     }
+    if (!this.radioSrc) {
+      const r = await this.startLoop('radio', 0);
+      if (r) {
+        this.radioSrc = r.src;
+        this.radioGain = r.gain;
+      }
+    }
+  }
+
+  applyRainGain() {
+    if (!this.ready || !this.rainGain) return;
+    const target = this.rainOn ? (this.indoor ? 0.18 : 0.5) : 0;
+    const t = this.ctx.currentTime;
+    this.rainGain.gain.cancelScheduledValues(t);
+    this.rainGain.gain.linearRampToValueAtTime(target, t + 1.2);
   }
 
   setRain(on) {
+    this.rainOn = on;
     if (!this.ready) return;
-    const t = this.ctx.currentTime;
-    if (this.rainGain) {
-      this.rainGain.gain.cancelScheduledValues(t);
-      this.rainGain.gain.linearRampToValueAtTime(on ? 0.5 : 0.0, t + 1.2);
-    }
+    this.applyRainGain();
     // crickets come out when the rain stops
     if (this.cricketGain) {
+      const t = this.ctx.currentTime;
       this.cricketGain.gain.cancelScheduledValues(t);
       this.cricketGain.gain.linearRampToValueAtTime(on ? 0.0 : 0.4, t + 2.0);
     }
+  }
+
+  setIndoor(indoor) {
+    if (this.indoor === indoor) return;
+    this.indoor = indoor;
+    this.applyRainGain();
+  }
+
+  setRadio(on) {
+    if (!this.ready || !this.radioGain) return;
+    const t = this.ctx.currentTime;
+    this.radioGain.gain.cancelScheduledValues(t);
+    this.radioGain.gain.linearRampToValueAtTime(on ? 0.5 : 0.0, t + 0.8);
   }
 
   updateFire(dt, dist) {
@@ -161,6 +191,27 @@ export class AudioEngine {
     const buf = await this.load('hoot');
     if (!buf) return;
     this.oneShot(buf, rnd(0.95, 1.05), 0.35);
+  }
+
+  async bark(kind) {
+    if (!this.ready) return;
+    const buf = await this.load('bark');
+    if (!buf) return;
+    this.oneShot(buf, kind === 'happy' ? 1.15 : 0.9, kind === 'happy' ? 0.35 : 0.5);
+  }
+
+  async munch() {
+    if (!this.ready) return;
+    const buf = await this.load('munch');
+    if (!buf) return;
+    this.oneShot(buf, rnd(0.95, 1.05), 0.6);
+  }
+
+  async kibble() {
+    if (!this.ready) return;
+    const buf = await this.load('kibble');
+    if (!buf) return;
+    this.oneShot(buf, 1, 0.6);
   }
 
   async step(surface) {

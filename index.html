@@ -35,10 +35,9 @@
       <div class="over-title">RAIN // NIGHT // PORCH</div>
       <h1 class="title">SIT</h1>
       <p class="subtitle">A QUIET NIGHT ON THE PORCH</p>
-      <p class="desc">You're sitting on a wooden chair. A storm rolls over
-        the lake, a campfire crackles in the yard, lightning splits the
-        mountains. Sit by the fire. Open the cabin door. Walk the dock.
-        Explore. No goals.</p>
+      <p class="desc">You're sitting on a wooden chair. Biscuit the dog is
+        waiting, noodles steam on the porch, a storm rolls over the lake.
+        Sit by the fire. Go inside and chill. Walk the dock. Explore.</p>
       <button id="btn-start" class="big-btn">🪑 &nbsp;SIT DOWN</button>
       <div class="controls">
         <div><kbd>MOUSE</kbd><span>look</span><kbd>E</kbd><span>sit / stand / door</span></div>
@@ -48,6 +47,20 @@
     </div>
   </div>
 
+  <script>
+    // Fallback: if the game module never boots (load failure),
+    // surface the boot overlay instead of a dead menu.
+    setTimeout(function () {
+      if (!window.__sitBooted) {
+        var el = document.getElementById('boot-error');
+        var msg = document.getElementById('boot-error-msg');
+        if (msg) msg.textContent = 'The game code failed to load (module timeout). Check your connection and refresh the page.';
+        if (el) el.classList.remove('hidden');
+        var intro = document.getElementById('intro');
+        if (intro) intro.classList.add('hidden');
+      }
+    }, 10000);
+  </script>
   <script type="module" src="/src/main.js"></script>
 </body>
 </html>

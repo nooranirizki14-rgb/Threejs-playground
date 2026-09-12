@@ -1,13 +1,14 @@
 # 🪑 SIT — a quiet night on the porch
 
 Photorealistic first-person night on a porch. A storm rolls over the lake,
-a campfire crackles in the yard, lightning splits the mountains. Sit by the
-fire, open the cabin door, walk the dock, explore the yard. No goals.
+a campfire crackles, Biscuit the dog is waiting, noodles steam on the
+porch, the radio hums. Sit by the fire, go inside and chill on the couch,
+walk the dock, explore the yard. No goals.
 
-Built with **Three.js + Vite**: full PBR materials (albedo + roughness +
-normal), procedural HDRI environment, moon/fire/lamp shadows, contact AO,
-shader lake with moon glitter, GPU rain, lightning through storm clouds,
-mirror puddles, bloom + filmic grade, spatial-ish real sound.
+Built with **Three.js + Vite**: full PBR materials, HDRI environment,
+moon/fire/lamp shadows, contact AO, shader lake, cyber rain with gusts,
+lightning through storm clouds, mirror puddles, bloom + filmic grade,
+companion dog AI, 15 sounds.
 
 ## Run it
 
@@ -19,21 +20,25 @@ npm run dev     # → http://localhost:5173
 Use a recent Chrome / Edge / Firefox with hardware acceleration.
 Must be served over http — opening `index.html` from disk won't work.
 
+If the menu ever seems stuck: hard-refresh the page. Any error will show
+as a red message (screenshot it and report it).
+
 ## Controls
 
 | Input | Action |
 |---|---|
 | Mouse | Look (click captures the pointer) |
-| E / Space | Sit / stand (chair + two fireside logs), open cabin door |
+| E / Space | Nearest interact: sit / stand, door, radio, noodles, dog bowl, pet dog |
 | WASD / arrows | Walk (when standing) |
 | R | Toggle rain (crickets + fireflies + owl when it stops) |
-| L | Toggle lights (lamp, strings, window, lanterns, shed) |
+| L | Toggle lights (lamp, strings, window, lanterns, shed, cabin) |
 | Q | Graphics quality: ULTRA → HIGH → BALANCED |
 | M | Mute / unmute sound |
 | Touch | Left half = walk stick, right half = look drag, E button |
 
-Footsteps change with the surface (deck, dock, grass, fire ash). Bump the
-porch swing and it sways. Thunder arrives late, like the real thing. 🔥
+Walk through the open cabin door and sit on the couch — Biscuit will curl
+up on his bed. Fill his bowl and he'll run over to eat. Thunder startles
+him (sorry, Biscuit). Rain fades under roofs and inside. 🐕
 
 ## Sound
 
@@ -42,15 +47,19 @@ for sources and licenses.
 
 | File | Used as |
 |---|---|
-| `rain.mp3` | Rain loop |
+| `rain.mp3` | Rain loop (quieter indoors) |
 | `thunder.mp3` | Thunder clap after each strike (delayed by distance) |
 | `fire.mp3` | Campfire crackle (louder near the fire) |
 | `crickets.mp3` | Night crickets (fade in when rain stops) |
-| `wind.mp3` | Wind bed (always breathing underneath) |
+| `wind.mp3` | Wind bed underneath everything |
 | `hoot.mp3` | Distant owl (calls when rain stops) |
+| `radio.mp3` | Warm late-night radio loop (toggle at the radio) |
+| `bark.mp3` | Biscuit's bark |
+| `munch.mp3` | Eating noodles |
+| `kibble.mp3` | Pouring dog food |
 | `click.mp3` | Lamp switch click |
 | `step.mp3` / `step2.mp3` | Footsteps on dirt/ash |
-| `step_wood.mp3` | Footsteps on deck + dock |
+| `step_wood.mp3` | Footsteps on deck + dock + cabin floor |
 | `step_grass.mp3` | Footsteps on grass |
 
 Replace any file with your own recording — just keep the name. Missing
@@ -59,27 +68,30 @@ files are simply silent.
 ## Project structure
 
 ```
-index.html          shell: intro overlay, HUD, prompts, toasts
+index.html          shell: intro overlay, HUD, prompts, toasts, boot fallback
 src/style.css       normal serif-night styling (no neon)
-src/main.js         boot + WebGL check + error overlay
+src/main.js         boot + WebGL check + error overlay + runtime error toast
 src/utils.js        clamp / lerp / rnd / canvas helpers
 src/textures.js     procedural PBR sets: wood, mud, bark, stone, plaid, denim
 src/envmap.js       procedural night HDRI baked through PMREM
 src/world.js        renderer, camera, moon + shadows, fill, fog, environment
 src/controls.js     keyboard + pointer-lock look + touch stick
-src/porch.js        PBR deck, lamp + volumetric cone, strings, table, steam, drips
+src/porch.js        PBR deck, lamp + cone, strings, table, steam, drips
 src/body.js         your seated body: flannel, denim, breathing
 src/nature.js       PBR ground, wind grass, pines, mountains, stars, moon
 src/lake.js         animated shader water + moon glitter path
-src/rain.js         GPU rain streaks + splash rings
+src/rain.js         cyber rain: gusts, bright rings, shelter fade
 src/skyfx.js        sky dome, storm clouds, lightning, mist, fireflies, moths
-src/props.js        cabin + door, swing, fence, paths, shed, bench, dock, clutter
+src/props.js        cabin wall + door, swing, fence, paths, shed, bench, dock
 src/firecamp.js     campfire: flames, sparks, smoke, shadow light, log seats
 src/puddles.js      mirror puddles (real reflections)
+src/dog.js          Biscuit: follow, wander, eat, sleep, startle, bark
+src/porchlife.js    radio, noodle bowl, kibble bowl
+src/cabin.js        enterable interior: couch, table, shelf, lamp, dog bed
 src/postfx.js       MSAA + bloom + filmic grade (split-tone, vignette, grain)
-src/audio.js        loops, distance fire, surface steps, owl, thunder delay
-src/game.js         states, sit/stand tweens, walking, quality scaler, UI
-public/sfx/         11 real + crafted mp3s (see CREDITS.md)
+src/audio.js        loops, distance fire, surface steps, radio, indoor muffle
+src/game.js         states, interactions, dog wiring, shelter, quality, UI
+public/sfx/         15 real + crafted mp3s (see CREDITS.md)
 ```
 
 ## Notes

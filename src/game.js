@@ -11,17 +11,22 @@ import { Props } from './props.js';
 import { FireCamp } from './firecamp.js';
 import { Puddles } from './puddles.js';
 import { PostFX } from './postfx.js';
+import { Dog } from './dog.js';
+import { PorchLife, RADIO_POS, NOODLE_POS, BOWL_POS } from './porchlife.js';
+import { Cabin } from './cabin.js';
 import { AudioEngine } from './audio.js';
 import { clamp, lerp, smooth, rnd } from './utils.js';
 
-// SIT: NIGHT PORCH — sit on the chair or by the campfire, watch the storm,
-// explore the yard, open the cabin door, walk the dock.
+// SIT: NIGHT PORCH — sit, explore, enter the cabin, feed the dog, radio on.
+// E uses the nearest interactable: seats, door, radio, noodles, bowl, dog.
 // States: 'intro' -> 'seated' <-> 'moving' (sit/stand) | 'standing' (walk).
-const YARD = { x0: -17.4, x1: 17.4, z0: -34.2, z1: 9.4 };
+const YARD = { x0: -17.4, x1: 17.4, z0: -34.2, z1: 10.2 };
 const WALK_SPEED = 2.3;
 const TRANSIT_TIME = 0.9;
 const QUALITY = ['ULTRA', 'HIGH', 'BALANCED'];
 const DOOR_POS = { x: 2.5, z: 4.9 };
+const NOODLE_TOASTS = ['slurp 🍜', 'so good 🍜', 'midnight noodles hit different 🌙'];
+const PET_TOASTS = ['good dog 🐕', 'Biscuit wags! 🐕', "who's a good boy? 🐕"];
 
 export class Game {
   constructor() {
@@ -41,20 +46,30 @@ export class Game {
     this.props = new Props(this.world.scene);
     this.fire = new FireCamp(this.world.scene);
     this.puddles = new Puddles(this.world.scene);
+    this.life = new PorchLife(this.world.scene);
+    this.cabin = new Cabin(this.world.scene);
+    this.dog = new Dog(this.world.scene);
     this.postfx = new PostFX(this.world.renderer, this.world.scene, this.world.camera);
     this.audio = new AudioEngine();
-    // thunder arrives late, like the real thing (sound is slower than light)
+    // thunder arrives late, like the real thing — and startles the dog
     this.sky.onThunder = () => {
       setTimeout(() => this.audio.thunder(), rnd(800, 2500));
+      this.dog.thunder();
     };
+    this.dog.onBark = (kind) => this.audio.bark(kind);
+    this.dog.onAte = () => {
+      this.life.emptyBowl();
+      this.toast('Biscuit is happy 🐕');
+    };
+    this.life.onRefill = () => this.toast('fresh noodles 🍜');
     window.addEventListener('resize', () => {
       this.postfx.setSize(window.innerWidth, window.innerHeight);
     });
 
-    this.boxes = [...this.porch.boxes, ...this.props.boxes];
-    this.circles = [...this.porch.circles, ...this.props.circles];
+    this.boxes = [...this.porch.boxes, ...this.props.boxes, ...this.cabin.boxes];
+    this.circles = [...this.porch.circles, ...this.props.circles, ...this.life.circles, ...this.cabin.circles];
 
-    // sittable spots: porch chair + two fireside logs
+    // sittable spots: porch chair, two fireside logs, cabin couch
     this.spots = [
       {
         id: 'chair', eye: new THREE.Vector3(0, 1.22, 2.6), yaw: 0,
@@ -73,6 +88,12 @@ export class Game {
         body: { x: -8.5, y: 0, z: -11.2, rot: 0 },
         stand: new THREE.Vector3(-8.5, 1.7, -10.5),
         near: { x: -8.5, z: -11.2 }, r: 2.0, label: 'fireside log', toast: 'warm by the fire 🔥',
+      },
+      {
+        id: 'couch', eye: new THREE.Vector3(1.2, 1.18, 9.3), yaw: 0,
+        body: { x: 1.2, y: 0.12, z: 9.3, rot: 0 },
+        stand: new THREE.Vector3(1.2, 1.7, 8.3),
+        near: { x: 1.2, z: 9.0 }, r: 2.2, label: 'couch', toast: 'warm inside 🛋️',
       },
     ];
     this.spot = this.spots[0];
@@ -93,8 +114,12 @@ export class Game {
     this.last = performance.now();
     this.dockToastShown = false;
     this.fireToastShown = false;
+    this.cabinToastShown = false;
+    this.indoor = false;
 
     this.els['btn-start'].addEventListener('click', () => this.start());
+    // fallback: clicking anywhere on the menu also starts (plus Enter key)
+    this.els.intro.addEventListener('click', () => this.start());
     this.controls.onLockChange = (locked) => this.onLockChange(locked);
     this.world.renderer.domElement.addEventListener('click', () => {
       if (this.state !== 'intro' && !this.controls.isTouch) this.controls.requestLock();
@@ -109,14 +134,18 @@ export class Game {
   }
 
   start() {
-    this.els.intro.classList.add('hidden');
-    this.els.hud.classList.remove('hidden');
+    if (this.state !== 'intro') return;
+    try { this.els.intro.classList.add('hidden'); } catch (e) { console.error(e); }
+    try { this.els.hud.classList.remove('hidden'); } catch (e) { console.error(e); }
     this.state = 'seated';
-    this.controls.requestLock();
-    this.audio.unlock();
-    this.audio.startAmbience();
-    this.audio.setRain(this.rain.on);
-    this.toast('storm over the lake — find the campfire 🔥');
+    this.spot = this.spots[0];
+    try { this.controls.requestLock(); } catch (e) { /* ignore */ }
+    try {
+      this.audio.unlock();
+      this.audio.startAmbience();
+      this.audio.setRain(this.rain.on);
+    } catch (e) { console.error(e); }
+    try { this.toast('storm over the lake — Biscuit is waiting 🐕'); } catch (e) { /* ignore */ }
   }
 
   onLockChange(locked) {
@@ -127,22 +156,57 @@ export class Game {
     }
   }
 
-  nearSpot() {
+  interactCandidates() {
+    const c = [];
     for (const s of this.spots) {
-      if (Math.hypot(this.walkPos.x - s.near.x, this.walkPos.z - s.near.z) < s.r) return s;
+      c.push({ kind: 'sit', spot: s, x: s.near.x, z: s.near.z, r: s.r, label: `sit (${s.label})` });
     }
-    return null;
+    c.push({
+      kind: 'door', x: DOOR_POS.x, z: DOOR_POS.z, r: 1.6,
+      label: this.props.doorOpen ? 'close the door' : 'open the door',
+    });
+    c.push({
+      kind: 'radio', x: RADIO_POS.x, z: RADIO_POS.z, r: 1.3,
+      label: this.life.radioOn ? 'turn radio off' : 'turn radio on',
+    });
+    c.push({ kind: 'noodle', x: NOODLE_POS.x, z: NOODLE_POS.z, r: 1.1, label: 'eat noodles' });
+    c.push({
+      kind: 'bowl', x: BOWL_POS.x, z: BOWL_POS.z, r: 1.2,
+      label: this.life.bowlFilled ? 'call Biscuit to eat' : 'fill the dog bowl',
+    });
+    c.push({ kind: 'dog', x: this.dog.pos.x, z: this.dog.pos.z, r: 1.3, label: 'pet Biscuit' });
+    return c;
   }
 
-  nearDoor() {
-    return Math.hypot(this.walkPos.x - DOOR_POS.x, this.walkPos.z - DOOR_POS.z) < 1.6;
+  nearestInteract() {
+    let best = null;
+    let bd = Infinity;
+    for (const cand of this.interactCandidates()) {
+      const d = Math.hypot(this.walkPos.x - cand.x, this.walkPos.z - cand.z);
+      if (d < cand.r && d < bd) {
+        best = cand;
+        bd = d;
+      }
+    }
+    return best;
   }
 
   surfaceAt(x, z) {
     if (Math.abs(x) <= 7 && z >= -3 && z <= 5) return 'wood';       // porch deck
     if (z < -21.8 && Math.abs(x) < 0.9) return 'wood';              // dock
+    if (x > -3.55 && x < 5.85 && z > 5.75 && z < 10.35) return 'wood'; // cabin floor
     if (Math.hypot(x + 8.5, z + 13) < 2) return 'dirt';             // fire ash
     return 'grass';
+  }
+
+  isIndoor() {
+    const p = this.world.camera.position;
+    return p.z > 5.7 && p.z < 10.4 && p.x > -3.6 && p.x < 5.9;
+  }
+
+  isUnderPorch() {
+    const p = this.world.camera.position;
+    return Math.abs(p.x) < 7.6 && p.z > -3.9 && p.z < 5.9 && p.y < 2.9;
   }
 
   pressE() {
@@ -154,8 +218,10 @@ export class Game {
       };
       this.state = 'moving';
     } else if (this.state === 'standing') {
-      const s = this.nearSpot();
-      if (s) {
+      const it = this.nearestInteract();
+      if (!it) return;
+      if (it.kind === 'sit') {
+        const s = it.spot;
         const cur = this.controls.lookYaw;
         const twoPi = Math.PI * 2;
         const flat = s.yaw + Math.round((cur - s.yaw) / twoPi) * twoPi;
@@ -165,10 +231,35 @@ export class Game {
           fromYaw: cur, toYaw: flat, toStanding: false, spot: s,
         };
         this.state = 'moving';
-      } else if (this.nearDoor()) {
+      } else if (it.kind === 'door') {
         const open = this.props.toggleDoor();
         this.audio.thunk();
         this.toast(open ? 'the cabin door creaks open 🚪' : 'door closed');
+      } else if (it.kind === 'radio') {
+        const on = this.life.toggleRadio();
+        this.audio.setRadio(on);
+        this.audio.click();
+        this.toast(on ? 'radio on 📻' : 'radio off');
+      } else if (it.kind === 'noodle') {
+        if (this.life.noodlesEaten) {
+          this.toast('all gone… more soon 🍜');
+        } else {
+          this.life.eatNoodles();
+          this.audio.munch();
+          this.toast(NOODLE_TOASTS[(Math.random() * NOODLE_TOASTS.length) | 0]);
+        }
+      } else if (it.kind === 'bowl') {
+        if (!this.life.bowlFilled) {
+          this.life.fillBowl();
+          this.audio.kibble();
+          this.toast('kibble for Biscuit 🦴');
+        } else {
+          this.toast('come eat, Biscuit! 🦴');
+        }
+        this.dog.startEat();
+      } else if (it.kind === 'dog') {
+        this.dog.pet();
+        this.toast(PET_TOASTS[(Math.random() * PET_TOASTS.length) | 0]);
       }
     }
   }
@@ -197,7 +288,9 @@ export class Game {
     this.idle += dt;
 
     const jp = this.controls.justPressed;
-    if (this.state !== 'intro') {
+    if (this.state === 'intro') {
+      if (jp.has('Enter') || jp.has('Space')) this.start();
+    } else {
       if ((jp.has('KeyE') || jp.has('Space')) && this.state !== 'moving') this.pressE();
       if (jp.has('KeyR')) {
         this.rain.setOn(!this.rain.on);
@@ -208,6 +301,7 @@ export class Game {
         const on = !this.porch.lampOn;
         this.porch.setLamp(on);
         this.props.setLights(on);
+        this.cabin.setLights(on);
         this.audio.click();
         this.toast(on ? 'lights on 💡' : 'lights off…');
       }
@@ -265,11 +359,9 @@ export class Game {
         this.fireToastShown = true;
         this.toast('the campfire — E to sit on a log 🔥');
       }
-      const spot = this.nearSpot();
-      if (spot && this.controls.locked) {
-        this.showPrompt(`<b>E</b> — sit (${spot.label})`);
-      } else if (this.nearDoor() && this.controls.locked) {
-        this.showPrompt(this.props.doorOpen ? '<b>E</b> — close the door' : '<b>E</b> — open the door');
+      const it = this.nearestInteract();
+      if (it && this.controls.locked) {
+        this.showPrompt(`<b>E</b> — ${it.label}`);
       } else if (!this.controls.locked) {
         this.showPrompt('click to capture mouse');
       } else {
@@ -314,14 +406,36 @@ export class Game {
       this.toastTimer -= dt;
       if (this.toastTimer <= 0) this.els.toast.classList.add('hidden');
     }
+
+    // shelter: rain fades under the porch roof, nearly gone inside the cabin
+    const indoor = this.isIndoor();
+    if (indoor !== this.indoor) {
+      this.indoor = indoor;
+      this.audio.setIndoor(indoor);
+      if (indoor && !this.cabinToastShown) {
+        this.cabinToastShown = true;
+        this.toast('inside, warm and dry 🏠');
+      }
+    }
+    const shelter = indoor ? 0.12 : this.isUnderPorch() ? 0.55 : 1;
     this.nature.update(dt, this.time);
-    this.rain.update(this.time, this.world.camera.position);
+    this.rain.update(this.time, this.world.camera.position, shelter);
     this.lake.update(dt, this.time, this.rain.on);
     this.sky.update(dt, this.time, this.rain.on, this.porch.lampOn);
     this.porch.update(this.time, dt, this.rain.on);
     this.props.update(this.time, dt);
     this.fire.update(dt, this.time);
     this.body.update(this.time);
+    this.life.update(this.time, dt);
+    const couchSeated = this.state === 'seated' && this.spot.id === 'couch';
+    this.dog.update(
+      dt, this.time, this.walkPos, this.state === 'seated', couchSeated,
+      BOWL_POS, this.life.bowlFilled, (p) => {
+        p.x = clamp(p.x, YARD.x0, YARD.x1);
+        p.z = clamp(p.z, YARD.z0, YARD.z1);
+        this.collide(p);
+      }
+    );
     this.audio.updateFire(dt, this.fire.distTo(this.world.camera.position));
 
     // NOTE: clear pressed-keys LAST — reading justPressed above must see this frame's taps.

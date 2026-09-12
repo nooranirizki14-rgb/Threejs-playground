@@ -84,10 +84,16 @@ export class Props {
   }
 
   buildCabin(scene, wood) {
-    const wall = new THREE.Mesh(new THREE.BoxGeometry(15, 3.4, 0.3), wood);
-    wall.position.set(0, 1.7, 5.6);
-    wall.castShadow = true;
-    scene.add(wall);
+    // front wall in segments around the open doorway (x 1.975..3.025)
+    const segL = new THREE.Mesh(new THREE.BoxGeometry(9.475, 3.4, 0.3), wood);
+    segL.position.set(-2.7625, 1.7, 5.6);
+    segL.castShadow = true;
+    const segR = new THREE.Mesh(new THREE.BoxGeometry(4.475, 3.4, 0.3), wood);
+    segR.position.set(5.2625, 1.7, 5.6);
+    segR.castShadow = true;
+    const lintel = new THREE.Mesh(new THREE.BoxGeometry(1.05, 1.04, 0.3), wood);
+    lintel.position.set(2.5, 2.88, 5.6);
+    scene.add(segL, segR, lintel);
     // warm window
     const frame = new THREE.Mesh(new THREE.BoxGeometry(1.7, 1.3, 0.1), wood);
     frame.position.set(-2.5, 1.8, 5.42);
@@ -112,14 +118,7 @@ export class Props {
     glow.scale.set(3.2, 2.4, 1);
     glow.position.set(-2.5, 1.8, 5.2);
     scene.add(glow);
-    // dark interior revealed when the door opens
-    const recess = new THREE.Mesh(
-      new THREE.PlaneGeometry(1.0, 2.2),
-      new THREE.MeshBasicMaterial({ map: interiorTexture() })
-    );
-    recess.position.set(2.5, 1.23, 5.448);
-    recess.rotation.y = Math.PI;
-    scene.add(recess);
+    // (doorway is open into the cabin interior — see cabin.js)
     // door on a hinge pivot (opens outward onto the porch)
     this.doorPivot = new THREE.Group();
     this.doorPivot.position.set(1.975, 0, 5.38);
@@ -215,9 +214,9 @@ export class Props {
   buildFence(scene, wood) {
     this.fenceRun(scene, wood, -18, -20, -1.2, -20);
     this.fenceRun(scene, wood, 1.2, -20, 18, -20);
-    this.fenceRun(scene, wood, -18, -20, -18, 10);
-    this.fenceRun(scene, wood, 18, -20, 18, 10);
-    this.fenceRun(scene, wood, -18, 10, 18, 10);
+    this.fenceRun(scene, wood, -18, -20, -18, 12.5);
+    this.fenceRun(scene, wood, 18, -20, 18, 12.5);
+    this.fenceRun(scene, wood, -18, 12.5, 18, 12.5);
   }
 
   buildStones(scene) {
