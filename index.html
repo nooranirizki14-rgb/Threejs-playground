@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Tornado Intercept — storm research sim</title>
+  <link rel="stylesheet" href="./src/style.css" />
+  <script>
+    window.addEventListener('error', function (e) {
+      var el = document.getElementById('err');
+      if (el) {
+        el.classList.remove('hidden');
+        el.textContent = '💥 ' + (e.message || e.type) + (e.filename ? ' @ ' + e.filename.split('/').pop() + ':' + e.lineno : '');
+      }
+    }, true);
+    setTimeout(function () {
+      if (!window.__bootOK) {
+        var el = document.getElementById('err');
+        if (el && el.classList.contains('hidden')) {
+          el.classList.remove('hidden');
+          el.textContent = '⏳ still loading… if this stays, try Chrome + hard refresh (Ctrl+Shift+R).';
+        }
+      }
+    }, 9000);
+  </script>
+</head>
+<body>
+  <div id="err" class="hidden"></div>
+  <div id="scene"></div>
+
+  <div id="hud" class="hidden">
+    <div id="data">
+      <div class="row"><span>SPEED</span><b id="d-speed">PARKED</b></div>
+      <div class="row"><span>WIND</span><b id="d-wind">0 m/s</b></div>
+      <div class="row"><span>PRESS</span><b id="d-pres">1010 hPa</b></div>
+      <div class="row"><span>TORNADO</span><b id="d-tor">—</b></div>
+      <div class="row"><span>RISK</span><b id="d-risk">LOW</b></div>
+      <div class="row"><span>DATA</span><b id="d-data">0</b></div>
+    </div>
+    <canvas id="radar" width="150" height="150"></canvas>
+    <div id="missions"></div>
+    <div id="dmg"><div id="dmgfill"></div><span>HULL</span></div>
+    <div id="warn" class="hidden"></div>
+    <div id="obj"><b>F</b> probe · <b>P</b> photo · <b>C</b> radio · <b>V</b> wipers · <b>L</b> lights · <b>M</b> mute — stay with the car!</div>
+  </div>
+
+  <div id="toast" class="hidden"></div>
+
+  <div id="setup">
+    <h1>🌪 TORNADO INTERCEPT</h1>
+    <p class="sub">Park the truck. Ride out the storm. Science demands it.</p>
+    <div id="bank">DATA BANK: <b>0</b></div>
+
+    <h3>1 · RESEARCH VEHICLE</h3>
+    <div class="cards" id="pick-car">
+      <label class="card"><input type="radio" name="car" value="interceptor" checked /><b>Interceptor SUV</b><span>Balanced chase truck</span></label>
+      <label class="card"><input type="radio" name="car" value="tiv" /><b>Heavy TIV</b><span>+hull, +weight, -sensors</span></label>
+      <label class="card"><input type="radio" name="car" value="scout" /><b>Scout Pickup</b><span>+sensors, fragile</span></label>
+    </div>
+
+    <h3>2 · TORNADO SCENARIO</h3>
+    <div class="cards" id="pick-tor">
+      <label class="card"><input type="radio" name="tor" value="rope" /><b>Rope</b><span>thin · fast · erratic</span></label>
+      <label class="card"><input type="radio" name="tor" value="classic" checked /><b>Classic</b><span>daytime supercell</span></label>
+      <label class="card"><input type="radio" name="tor" value="wedge" /><b>Wedge</b><span>wide · violent · slow</span></label>
+      <label class="card"><input type="radio" name="tor" value="multi" /><b>Multi-vortex</b><span>sunset · subvortices</span></label>
+      <label class="card"><input type="radio" name="tor" value="rainwrap" /><b>Rain-wrapped</b><span>hidden · low vis</span></label>
+      <label class="card"><input type="radio" name="tor" value="night" /><b>Night</b><span>dark · lightning-lit</span></label>
+    </div>
+
+    <h3>3 · RADIO</h3>
+    <div class="cards" id="pick-radio">
+      <label class="card"><input type="radio" name="radio" value="off" checked /><b>Off</b><span>storm only</span></label>
+      <label class="card"><input type="radio" name="radio" value="wx" /><b>WX Band</b><span>weather alerts</span></label>
+      <label class="card"><input type="radio" name="radio" value="music" /><b>Road tunes</b><span>chase music</span></label>
+    </div>
+
+    <h3>4 · FOOD</h3>
+    <div class="cards" id="pick-food">
+      <label class="card"><input type="radio" name="food" value="none" checked /><b>None</b><span>—</span></label>
+      <label class="card"><input type="radio" name="food" value="coffee" /><b>☕ Coffee</b><span>+15% data</span></label>
+      <label class="card"><input type="radio" name="food" value="donuts" /><b>🍩 Donuts</b><span>−15% damage</span></label>
+      <label class="card"><input type="radio" name="food" value="sandwich" /><b>🥪 Sandwich</b><span>+20 hull</span></label>
+    </div>
+
+    <h3>5 · PET</h3>
+    <div class="cards" id="pick-pet">
+      <label class="card"><input type="radio" name="pet" value="none" checked /><b>None</b><span>—</span></label>
+      <label class="card"><input type="radio" name="pet" value="dog" /><b>🐕 Biscuit</b><span>barks storm alarms</span></label>
+      <label class="card"><input type="radio" name="pet" value="cat" /><b>🐈 Miso</b><span>calm: −5% damage</span></label>
+    </div>
+
+    <h3>6 · CREW</h3>
+    <div class="cards" id="pick-crew">
+      <label class="card"><input type="checkbox" id="crew-maya" checked /><b>Maya</b><span>co-driver callouts</span></label>
+      <label class="card"><input type="checkbox" id="crew-reyes" /><b>Reyes</b><span>auto-photos (+data)</span></label>
+    </div>
+
+    <h3>7 · EQUIPMENT (pick 2)</h3>
+    <div class="cards" id="pick-eq">
+      <label class="card"><input type="checkbox" value="pod" /><b>Sensor pod</b><span>+25% data</span></label>
+      <label class="card"><input type="checkbox" value="glass" /><b>Armor glass</b><span>−25% damage</span></label>
+      <label class="card"><input type="checkbox" value="tire" /><b>Beadlocks</b><span>+grip</span></label>
+      <label class="card"><input type="checkbox" value="hail" /><b>Hail guards</b><span>no hail damage</span></label>
+      <label class="card"><input type="checkbox" value="cam" /><b>Camera rig</b><span>+photo value</span></label>
+    </div>
+
+    <h3>8 · GARAGE UPGRADES</h3>
+    <div id="upgrades"></div>
+
+    <button id="deploy">🚙 DEPLOY TO THE STORM</button>
+  </div>
+
+  <div id="debrief" class="hidden">
+    <h2 id="db-title">STORM PASSED</h2>
+    <div id="db-stats"></div>
+    <button id="db-again">RETURN TO GARAGE</button>
+  </div>
+
+  <div id="play" class="hidden">
+    <h2>🌪 CLICK TO CLIMB IN</h2>
+    <p>parked intercept — the tornado is coming to you</p>
+  </div>
+  <script type="module" src="./src/main.ts"></script>
+</body>
+</html>
