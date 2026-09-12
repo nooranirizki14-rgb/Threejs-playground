@@ -1,14 +1,15 @@
 import * as THREE from 'three';
 import { makeCanvas } from './utils.js';
 
-// Wooden porch: deck, posts, roof, railing, hanging lamp, side table, chair.
-// Deck spans x -7..7, z -3..5. Chair at (0, 0.12, 2.6) facing -Z (the lake).
+// Wooden porch: deck, posts, roof, railing, hanging lamp, string lights,
+// side table, chair, front step. Deck spans x -7..7, z -3..5.
+// Chair at (0, 0.12, 2.6) facing -Z (the lake).
 export const CHAIR_POS = { x: 0, z: 2.6 };
 export const SEAT_TOP = 0.57;
 
 function woodTexture() {
   const [c, ctx] = makeCanvas(256, 256);
-  ctx.fillStyle = '#4a3421';
+  ctx.fillStyle = '#5a4128';
   ctx.fillRect(0, 0, 256, 256);
   for (let p = 0; p < 8; p++) {
     const y = p * 32;
@@ -81,8 +82,10 @@ export class Porch {
     this.railRun(scene, darkWood, 1.6, -2.9, 7, -2.9);    // front right
 
     this.buildLamp(scene);
+    this.buildStrings(scene);
     this.buildTable(scene, darkWood);
-    this.buildChair(scene, wood);
+    this.buildChair(scene);
+    this.buildStep(scene, darkWood);
   }
 
   railRun(scene, mat, x0, z0, x1, z1) {
@@ -143,14 +146,37 @@ export class Porch {
     g.add(cord, shade, bulb, glow);
     scene.add(g);
 
-    this.lamp = new THREE.PointLight(0xffc98a, 26, 22, 2);
+    this.lamp = new THREE.PointLight(0xffc98a, 40, 24, 2);
     this.lamp.position.set(0, 2.25, 0.5);
     this.lamp.castShadow = true;
     this.lamp.shadow.mapSize.set(512, 512);
     this.lamp.shadow.camera.near = 0.1;
-    this.lamp.shadow.camera.far = 22;
+    this.lamp.shadow.camera.far = 24;
     scene.add(this.lamp);
     this.lampOn = true;
+  }
+
+  buildStrings(scene) {
+    this.stringMat = new THREE.MeshBasicMaterial({ color: 0xffd9a0 });
+    const cordMat = new THREE.LineBasicMaterial({ color: 0x0a0a0a });
+    const bulbGeo = new THREE.SphereGeometry(0.035, 8, 6);
+    const run = (x0, z0, x1, z1, y, sag, n) => {
+      const pts = [];
+      for (let i = 0; i < n; i++) {
+        const t = i / (n - 1);
+        const x = x0 + (x1 - x0) * t;
+        const z = z0 + (z1 - z0) * t;
+        const yy = y - Math.sin(t * Math.PI) * sag;
+        pts.push(new THREE.Vector3(x, yy, z));
+        const bulb = new THREE.Mesh(bulbGeo, this.stringMat);
+        bulb.position.set(x, yy - 0.05, z);
+        scene.add(bulb);
+      }
+      const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), cordMat);
+      scene.add(line);
+    };
+    run(-6.4, -3.5, 6.4, -3.5, 2.72, 0.4, 15);   // front edge
+    run(-6.4, -3.5, -6.4, 4.5, 2.72, 0.5, 11);   // left edge
   }
 
   setLamp(on) {
@@ -158,6 +184,7 @@ export class Porch {
     this.lamp.visible = on;
     this.bulbMat.color.setRGB(...(on ? [2.2, 1.6, 1.0] : [0.25, 0.22, 0.2]));
     this.glowMat.opacity = on ? 0.55 : 0;
+    this.stringMat.color.set(on ? 0xffd9a0 : 0x22201c);
   }
 
   buildTable(scene, mat) {
@@ -178,7 +205,7 @@ export class Porch {
     this.circles.push({ x: -1.35, z: 2.6, r: 0.45 });
   }
 
-  buildChair(scene, woodMat) {
+  buildChair(scene) {
     const g = new THREE.Group();
     g.position.set(CHAIR_POS.x, 0.12, CHAIR_POS.z);
     const mat = new THREE.MeshStandardMaterial({ color: 0x6b4a2a, roughness: 0.85 });
@@ -217,6 +244,12 @@ export class Porch {
     }
     scene.add(g);
     this.circles.push({ x: CHAIR_POS.x, z: CHAIR_POS.z, r: 0.5 });
-    void woodMat;
+  }
+
+  buildStep(scene, mat) {
+    const step = new THREE.Mesh(new THREE.BoxGeometry(2.8, 0.12, 0.6), mat);
+    step.position.set(0, 0.06, -3.6);
+    step.receiveShadow = true;
+    scene.add(step);
   }
 }

@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 
 // GPU rain: streaks + splash rings following the camera.
+// v2: denser, brighter, longer streaks so rain reads against the dark sky.
 function instancedQuads(count, itemSize, fill) {
   const geo = new THREE.InstancedBufferGeometry();
   const base = new THREE.PlaneGeometry(1, 1);
@@ -15,7 +16,7 @@ function instancedQuads(count, itemSize, fill) {
 }
 
 export class Rain {
-  constructor(scene, { streaks = 1300, rings = 160 } = {}) {
+  constructor(scene, { streaks = 1800, rings = 220 } = {}) {
     this.group = new THREE.Group();
     scene.add(this.group);
 
@@ -32,8 +33,8 @@ export class Rain {
       uCamPos: { value: new THREE.Vector3() },
       uBox: { value: new THREE.Vector2(55, 55) },
       uHeight: { value: 26 },
-      uColor: { value: new THREE.Color(0xa8b2c4) },
-      uOpacity: { value: 0.26 },
+      uColor: { value: new THREE.Color(0xb9c4d8) },
+      uOpacity: { value: 0.34 },
     };
     const smat = new THREE.ShaderMaterial({
       uniforms: this.sUniforms,
@@ -56,7 +57,7 @@ export class Rain {
           vec3 world = vec3(uCamPos.x + rel.x, y, uCamPos.z + rel.y);
           vec4 mv = viewMatrix * vec4(world, 1.0);
           float dist = max(-mv.z, 0.001);
-          mv.xy += vec2(position.x * 0.035 + position.y * 0.14, position.y * 0.9);
+          mv.xy += vec2(position.x * 0.05 + position.y * 0.17, position.y * 1.25);
           gl_Position = projectionMatrix * mv;
           vAlpha = (1.0 - smoothstep(22.0, 50.0, dist)) * smoothstep(0.4, 2.5, dist);
         }
@@ -90,8 +91,8 @@ export class Rain {
       uTime: { value: 0 },
       uCamPos: { value: new THREE.Vector3() },
       uBox: { value: 50 },
-      uColor: { value: new THREE.Color(0x7d8aa0) },
-      uOpacity: { value: 0.4 },
+      uColor: { value: new THREE.Color(0x8fa0b8) },
+      uOpacity: { value: 0.55 },
     };
     const rmat = new THREE.ShaderMaterial({
       uniforms: this.rUniforms,

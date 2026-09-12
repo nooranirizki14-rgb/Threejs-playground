@@ -5,13 +5,17 @@ import { Porch } from './porch.js';
 import { Body } from './body.js';
 import { Nature } from './nature.js';
 import { Rain } from './rain.js';
+import { Lake } from './lake.js';
+import { SkyFX } from './skyfx.js';
+import { Props } from './props.js';
+import { AudioEngine } from './audio.js';
 import { clamp, lerp, smooth } from './utils.js';
 
-// SIT — sit on a chair on a rainy porch, look around, stand, walk, sit back.
+// SIT: NIGHT PORCH — sit on a chair, look at the storm, stand, walk to the dock.
 // States: 'intro' -> 'seated' <-> 'moving' (sit/stand transition) | 'standing' (walk).
 const EYE_SEATED = new THREE.Vector3(0, 1.22, 2.6);
 const STAND_SPOT = new THREE.Vector3(1.0, 1.7, 2.75);
-const YARD = { x0: -12, x1: 12, z0: -22, z1: 7 };
+const YARD = { x0: -12, x1: 12, z0: -34.2, z1: 7 };
 const WALK_SPEED = 2.3;
 const TRANSIT_TIME = 0.9;
 
@@ -28,16 +32,26 @@ export class Game {
     this.body = new Body(this.world.scene);
     this.nature = new Nature(this.world.scene);
     this.rain = new Rain(this.world.scene);
+    this.lake = new Lake(this.world.scene);
+    this.sky = new SkyFX(this.world.scene, this.world.hemi);
+    this.props = new Props(this.world.scene);
+    this.audio = new AudioEngine();
+    this.sky.onThunder = () => this.audio.thunder();
+
+    this.boxes = [...this.porch.boxes, ...this.props.boxes];
+    this.circles = [...this.porch.circles, ...this.props.circles];
 
     this.state = 'intro';
     this.standing = false;
     this.transit = null; // {t, from, to, fromYaw, toYaw, toStanding}
     this.walkPos = new THREE.Vector3().copy(STAND_SPOT);
+    this.groundY = 0;
     this.bobPhase = 0;
     this.idle = 0;
     this.toastTimer = 0;
     this.time = 0;
     this.last = performance.now();
+    this.dockToastShown = false;
 
     this.els['btn-start'].addEventListener('click', () => this.start());
     this.controls.onLockChange = (locked) => this.onLockChange(locked);
@@ -58,7 +72,9 @@ export class Game {
     this.els.hud.classList.remove('hidden');
     this.state = 'seated';
     this.controls.requestLock();
-    this.toast('look around — E to stand up');
+    this.audio.unlock();
+    this.audio.startRain();
+    this.toast('storm over the lake — E to stand, walk to the dock');
   }
 
   onLockChange(locked) {
@@ -69,30 +85,31 @@ export class Game {
     }
   }
 
+  chairDist() {
+    return Math.hypot(this.walkPos.x - 0, this.walkPos.z - 2.6);
+  }
+
   pressE() {
     if (this.state === 'seated') {
+      const yaw = this.controls.lookYaw;
       this.transit = {
         t: 0, from: EYE_SEATED.clone(), to: STAND_SPOT.clone(),
-        fromYaw: 0, toYaw: 0, toStanding: true,
+        fromYaw: yaw, toYaw: yaw, toStanding: true,
       };
       this.state = 'moving';
     } else if (this.state === 'standing') {
+      if (this.chairDist() > 2.5) {
+        this.toast('the chair is back on the porch 🪑');
+        return;
+      }
+      const cur = this.controls.lookYaw;
+      const flat = Math.round(cur / (Math.PI * 2)) * Math.PI * 2; // face the lake again
       this.transit = {
         t: 0, from: this.world.camera.position.clone(), to: EYE_SEATED.clone(),
-        fromYaw: this.controls.lookYaw, toYaw: this.yawToChair(), toStanding: false,
+        fromYaw: cur, toYaw: flat, toStanding: false,
       };
       this.state = 'moving';
     }
-  }
-
-  yawToChair() {
-    const dx = 0 - this.walkPos.x;
-    const dz = 2.6 - this.walkPos.z;
-    let target = Math.atan2(-dx, -dz);
-    const cur = this.controls.lookYaw;
-    while (target - cur > Math.PI) target -= Math.PI * 2;
-    while (target - cur < -Math.PI) target += Math.PI * 2;
-    return target;
   }
 
   update(dt) {
@@ -103,11 +120,19 @@ export class Game {
       if ((jp.has('KeyE') || jp.has('Space')) && this.state !== 'moving') this.pressE();
       if (jp.has('KeyR')) {
         this.rain.setOn(!this.rain.on);
-        this.toast(this.rain.on ? 'rain returns 🌧️' : 'rain fades away…');
+        this.audio.setRain(this.rain.on);
+        this.toast(this.rain.on ? 'rain returns 🌧️' : 'rain fades… fireflies soon ✨');
       }
       if (jp.has('KeyL')) {
-        this.porch.setLamp(!this.porch.lampOn);
-        this.toast(this.porch.lampOn ? 'lamp on 💡' : 'lamp off…');
+        const on = !this.porch.lampOn;
+        this.porch.setLamp(on);
+        this.props.setLights(on);
+        this.audio.click();
+        this.toast(on ? 'lights on 💡' : 'lights off…');
+      }
+      if (jp.has('KeyM')) {
+        const muted = this.audio.toggleMute();
+        this.toast(muted ? 'muted 🔇' : 'sound on 🔊');
       }
     }
 
@@ -131,11 +156,17 @@ export class Game {
       this.walkPos.x = clamp(this.walkPos.x, YARD.x0, YARD.x1);
       this.walkPos.z = clamp(this.walkPos.z, YARD.z0, YARD.z1);
       this.collide(this.walkPos);
+      const onDock = this.walkPos.z < -21.8 && Math.abs(this.walkPos.x) < 0.9;
+      const targetGround = onDock ? 0.35 : 0;
+      this.groundY += (targetGround - this.groundY) * Math.min(1, dt * 6);
       const bob = Math.sin(this.bobPhase) * 0.03 * (len > 0.01 ? 1 : 0);
-      this.world.camera.position.set(this.walkPos.x, 1.7 + bob, this.walkPos.z);
+      this.world.camera.position.set(this.walkPos.x, 1.7 + this.groundY + bob, this.walkPos.z);
       this.applyLook(0);
-      const near = Math.hypot(this.walkPos.x - 0, this.walkPos.z - 2.6) < 2.2;
-      if (near && this.controls.locked) {
+      if (onDock && this.walkPos.z < -32 && !this.dockToastShown) {
+        this.dockToastShown = true;
+        this.toast('the end of the dock. nice. 🎣');
+      }
+      if (this.chairDist() < 2.2 && this.controls.locked) {
         this.showPrompt('<b>E</b> — sit back down');
       } else if (!this.controls.locked) {
         this.showPrompt('click to capture mouse');
@@ -173,6 +204,13 @@ export class Game {
     }
     this.nature.update(dt);
     this.rain.update(this.time, this.world.camera.position);
+    this.lake.update(dt, this.time, this.rain.on);
+    this.sky.update(dt, this.time, this.rain.on, this.porch.lampOn);
+    this.props.update(this.time);
+
+    // NOTE: clear pressed-keys LAST — reading justPressed above must see this frame's taps.
+    // Clearing earlier (or never) makes E/R/L stick forever. This was the v1 "stuck keys" bug.
+    this.controls.lateUpdate();
   }
 
   seatedPose() {
@@ -192,7 +230,7 @@ export class Game {
   }
 
   collide(p) {
-    for (const b of this.porch.boxes) {
+    for (const b of this.boxes) {
       const cx = clamp(p.x, b.x0, b.x1);
       const cz = clamp(p.z, b.z0, b.z1);
       const dx = p.x - cx;
@@ -207,7 +245,7 @@ export class Game {
         }
       }
     }
-    for (const c of this.porch.circles) {
+    for (const c of this.circles) {
       const dx = p.x - c.x;
       const dz = p.z - c.z;
       const d = Math.hypot(dx, dz);

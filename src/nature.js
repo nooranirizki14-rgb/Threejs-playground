@@ -125,24 +125,7 @@ export class Nature {
       scene.add(mesh);
     }
 
-    // lake
-    const lake = new THREE.Mesh(
-      new THREE.PlaneGeometry(300, 66),
-      new THREE.MeshStandardMaterial({ color: 0x0a1420, metalness: 0.85, roughness: 0.25 })
-    );
-    lake.rotation.x = -Math.PI / 2;
-    lake.position.set(0, 0.02, -57);
-    scene.add(lake);
-
-    // moon reflection streak
-    this.streakMat = new THREE.MeshBasicMaterial({
-      map: streakTexture(), transparent: true, opacity: 0.4,
-      blending: THREE.AdditiveBlending, depthWrite: false,
-    });
-    const streak = new THREE.Mesh(new THREE.PlaneGeometry(7, 62), this.streakMat);
-    streak.rotation.x = -Math.PI / 2;
-    streak.position.set(-30, 0.04, -57);
-    scene.add(streak);
+    // (the lake + moon glint now come from the Lake shader in lake.js)
 
     // mountains
     {
@@ -204,6 +187,5 @@ export class Nature {
 
   update(dt) {
     this.t += dt;
-    this.streakMat.opacity = 0.36 + Math.sin(this.t * 1.7) * 0.05 + Math.sin(this.t * 4.3) * 0.02;
   }
 }
