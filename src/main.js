@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 
-// LOCKED IN THE CAR — night road, driver's seat, mouse look.
-// A/D turns the wheel (visual), L toggles headlights, E tries the door. Locked.
+// AUTODRIVE — locked in the driver's seat while the car drives itself.
+// The car stays at the origin; the world scrolls past. W/S adjusts cruise.
 
 const container = document.getElementById('scene');
 let renderer;
@@ -29,6 +29,10 @@ const camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerH
 camera.rotation.order = 'YXZ';
 const SEAT = new THREE.Vector3(-0.4, 1.18, 0.35);
 
+// car rig: every car part lives here so the body can sway/bob as one
+const rig = new THREE.Group();
+scene.add(rig);
+
 // ---------- lights ----------
 scene.add(new THREE.HemisphereLight(0x2a3a5c, 0x0a0c10, 0.8));
 const moon = new THREE.DirectionalLight(0x33415e, 0.6);
@@ -36,7 +40,7 @@ moon.position.set(-20, 30, -40);
 scene.add(moon);
 const cabinGlow = new THREE.PointLight(0xffe0b0, 1.6, 3.5, 1.6);
 cabinGlow.position.set(0, 1.3, 0.3);
-scene.add(cabinGlow);
+rig.add(cabinGlow);
 
 // ---------- canvas textures ----------
 function roadTexture() {
@@ -119,18 +123,18 @@ const M = {
   tree: new THREE.MeshStandardMaterial({ color: 0x0c140c, roughness: 1 }),
 };
 
-function box(w, h, d, mat, x, y, z, parent = scene) {
+function box(w, h, d, mat, x, y, z, parent = rig) {
   const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
   m.position.set(x, y, z);
   parent.add(m);
   return m;
 }
 
-// ---------- road + world ----------
-// car faces -z. road under it.
+// ---------- road + world (scrolls past the car) ----------
+const roadTex = roadTexture();
 const road = new THREE.Mesh(
   new THREE.PlaneGeometry(7, 240),
-  new THREE.MeshStandardMaterial({ map: roadTexture(), roughness: 0.95 })
+  new THREE.MeshStandardMaterial({ map: roadTex, roughness: 0.95 })
 );
 road.rotation.x = -Math.PI / 2;
 road.position.set(0, 0, -80);
@@ -145,29 +149,36 @@ ground.rotation.x = -Math.PI / 2;
 ground.position.y = -0.03;
 scene.add(ground);
 
-// street lamps (emissive heads, 2 real lights near the car)
+// street lamps (recycle down the road)
+const lamps = [];
+const LAMP_SPAN = 140;
 {
   const headGeo = new THREE.SphereGeometry(0.12, 10, 8);
   const poleGeo = new THREE.CylinderGeometry(0.06, 0.08, 5, 8);
   let li = 0;
   for (let z = 20; z >= -100; z -= 20) {
+    const g = new THREE.Group();
     const sx = (li % 2 === 0 ? 1 : -1) * 4.5;
     const pole = new THREE.Mesh(poleGeo, M.pole);
-    pole.position.set(sx, 2.5, z);
-    scene.add(pole);
+    pole.position.y = 2.5;
     const head = new THREE.Mesh(headGeo, M.lampHead);
-    head.position.set(sx * 0.92, 5.0, z);
-    scene.add(head);
+    head.position.set(-sx * 0.08, 5.0, 0);
+    g.add(pole, head);
     if (li < 2) {
       const pl = new THREE.PointLight(0xffc98a, 10, 20, 1.8);
-      pl.position.set(sx * 0.92, 4.8, z);
-      scene.add(pl);
+      pl.position.set(-sx * 0.08, 4.8, 0);
+      g.add(pl);
     }
+    g.position.set(sx, 0, z);
+    scene.add(g);
+    lamps.push(g);
     li++;
   }
 }
 
-// tree silhouettes
+// tree silhouettes (recycle)
+const trees = [];
+const TREE_SPAN = 170;
 {
   const treeGeo = new THREE.ConeGeometry(1.8, 5, 7);
   for (let i = 0; i < 26; i++) {
@@ -176,10 +187,11 @@ scene.add(ground);
     t.position.set(side * (6 + Math.random() * 14), 2.2, 30 - Math.random() * 140);
     t.scale.setScalar(0.7 + Math.random() * 0.8);
     scene.add(t);
+    trees.push(t);
   }
 }
 
-// stars + moon
+// stars + moon (static, far away)
 {
   const n = 300;
   const p = new Float32Array(n * 3);
@@ -204,22 +216,23 @@ scene.add(ground);
   scene.add(moonDisc);
 }
 
-// ---------- car exterior bits ----------
-// hood + bumpers + trunk + taillights
-box(1.8, 0.12, 1.4, M.body, 0, 0.74, -1.45);
-box(1.9, 0.3, 0.25, M.body, 0, 0.45, -2.2);
-box(1.8, 0.15, 0.9, M.body, 0, 0.78, 1.7);
-box(1.9, 0.3, 0.25, M.body, 0, 0.45, 2.2);
+// ---------- car (rides on the rig) ----------
+box(1.8, 0.12, 1.4, M.body, 0, 0.74, -1.45); // hood
+box(1.9, 0.3, 0.25, M.body, 0, 0.45, -2.2); // front bumper
+box(1.8, 0.15, 0.9, M.body, 0, 0.78, 1.7); // trunk
+box(1.9, 0.3, 0.25, M.body, 0, 0.45, 2.2); // rear bumper
 box(0.3, 0.1, 0.06, M.tail, -0.65, 0.72, 2.18);
 box(0.3, 0.1, 0.06, M.tail, 0.65, 0.72, 2.18);
-// wheels (dark, barely visible)
+// spinning wheels
+const wheels = [];
 {
   const wg = new THREE.CylinderGeometry(0.33, 0.33, 0.24, 14);
+  wg.rotateZ(Math.PI / 2);
   for (const [wx, wz] of [[-0.85, -1.4], [0.85, -1.4], [-0.85, 1.4], [0.85, 1.4]]) {
     const w = new THREE.Mesh(wg, M.tire);
-    w.rotation.z = Math.PI / 2;
     w.position.set(wx, 0.33, wz);
-    scene.add(w);
+    rig.add(w);
+    wheels.push(w);
   }
 }
 
@@ -229,7 +242,7 @@ function headlight(x) {
   const s = new THREE.SpotLight(0xcfe6ff, 60, 70, 0.46, 0.55, 1.4);
   s.position.set(x, 0.7, -2.2);
   s.target.position.set(x * 1.6, 0, -25);
-  scene.add(s, s.target);
+  rig.add(s, s.target);
   const cone = new THREE.Mesh(
     new THREE.ConeGeometry(2.2, 9, 16, 1, true),
     new THREE.MeshBasicMaterial({
@@ -239,7 +252,7 @@ function headlight(x) {
   );
   cone.rotation.x = -Math.PI / 2 - 0.06;
   cone.position.set(x * 1.4, 0.45, -6.5);
-  scene.add(cone);
+  rig.add(cone);
   beams.push(s, cone);
   return s;
 }
@@ -248,40 +261,36 @@ headlight(0.65);
 spotL.castShadow = true;
 spotL.shadow.mapSize.set(512, 512);
 
-// ---------- cabin (you are in here, no exit) ----------
+// cabin
 box(2.0, 0.1, 2.6, M.trim, 0, 0.4, 0.05); // floor
 box(2.0, 0.1, 2.5, M.trim, 0, 1.5, 0.05); // roof
 box(1.9, 0.08, 0.1, M.trim, 0, 1.44, -1.16); // windshield header
-// doors (lower) + side glass
-box(0.08, 0.55, 2.4, M.trim, -0.98, 0.68, 0.05);
+box(0.08, 0.55, 2.4, M.trim, -0.98, 0.68, 0.05); // doors
 box(0.08, 0.55, 2.4, M.trim, 0.98, 0.68, 0.05);
 for (const sx of [-0.98, 0.98]) {
   const g = new THREE.Mesh(new THREE.PlaneGeometry(2.3, 0.5), M.glass);
   g.rotation.y = Math.PI / 2;
   g.position.set(sx, 1.2, 0.05);
-  scene.add(g);
+  rig.add(g);
   box(0.07, 0.55, 0.09, M.trim, sx, 1.2, 0.3); // B-pillar
 }
-// windshield + A-pillars
 {
   const ws = new THREE.Mesh(new THREE.PlaneGeometry(1.9, 0.68), M.glass);
   ws.rotation.x = -0.675;
   ws.position.set(0, 1.2, -0.95);
-  scene.add(ws);
+  rig.add(ws);
   for (const sx of [-0.95, 0.95]) {
     const p = box(0.07, 0.72, 0.07, M.trim, sx, 1.2, -0.95);
     p.rotation.x = -0.675;
   }
 }
-// rear glass + panel
 {
   const rg = new THREE.Mesh(new THREE.PlaneGeometry(1.8, 0.5), M.glass);
   rg.position.set(0, 1.2, 1.28);
-  scene.add(rg);
+  rig.add(rg);
   box(1.9, 0.55, 0.08, M.trim, 0, 0.68, 1.28);
 }
-// dashboard + dials + wheel + console
-box(1.9, 0.18, 0.35, M.dash, 0, 0.92, -0.575);
+box(1.9, 0.18, 0.35, M.dash, 0, 0.92, -0.575); // dashboard
 box(1.9, 0.1, 0.3, M.dash, 0, 1.02, -0.62);
 {
   const dials = new THREE.Mesh(
@@ -289,7 +298,7 @@ box(1.9, 0.1, 0.3, M.dash, 0, 1.02, -0.62);
     new THREE.MeshBasicMaterial({ map: dialTexture() })
   );
   dials.position.set(-0.4, 0.99, -0.395);
-  scene.add(dials);
+  rig.add(dials);
   box(0.25, 0.08, 0.02, new THREE.MeshStandardMaterial({
     color: 0x061208, emissive: 0x2a7a4a, emissiveIntensity: 1.2,
   }), 0.25, 0.94, -0.395);
@@ -297,7 +306,7 @@ box(1.9, 0.1, 0.3, M.dash, 0, 1.02, -0.62);
 const steerGroup = new THREE.Group();
 steerGroup.position.set(-0.4, 0.95, -0.35);
 steerGroup.rotation.x = -0.45;
-scene.add(steerGroup);
+rig.add(steerGroup);
 const spinner = new THREE.Group();
 steerGroup.add(spinner);
 {
@@ -313,7 +322,7 @@ steerGroup.add(spinner);
   const col = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.3, 8), M.trim);
   col.rotation.x = Math.PI / 2 - 0.45;
   col.position.set(-0.4, 0.88, -0.48);
-  scene.add(col);
+  rig.add(col);
 }
 box(0.3, 0.32, 0.7, M.trim, 0, 0.6, 0.1); // console
 {
@@ -324,9 +333,8 @@ box(0.3, 0.32, 0.7, M.trim, 0, 0.6, 0.1); // console
     new THREE.MeshStandardMaterial({ color: 0x222630, roughness: 0.4 })
   );
   knob.position.set(0, 0.91, -0.05);
-  scene.add(sh, knob);
+  rig.add(sh, knob);
 }
-// seats
 function seat(x, z) {
   box(0.55, 0.18, 0.5, M.seat, x, 0.55, z);
   const back = box(0.55, 0.62, 0.16, M.seat, x, 0.92, z + 0.3);
@@ -336,28 +344,29 @@ function seat(x, z) {
 seat(-0.4, 0.35);
 seat(0.4, 0.35);
 box(1.5, 0.18, 0.5, M.seat, 0, 0.55, 0.95); // back bench
-// rear-view mirror
 box(0.03, 0.08, 0.03, M.trim, 0, 1.4, -1.0);
 box(0.3, 0.11, 0.03, M.trim, 0, 1.33, -1.0);
 {
   const mf = new THREE.Mesh(new THREE.PlaneGeometry(0.27, 0.09), M.mirror);
   mf.position.set(0, 1.33, -0.983);
-  scene.add(mf);
+  rig.add(mf);
 }
-// side mirrors on stalks
 for (const sx of [-1, 1]) {
   box(0.12, 0.03, 0.03, M.trim, sx * 1.05, 1.0, -0.7);
   box(0.06, 0.12, 0.16, M.body, sx * 1.12, 1.02, -0.7);
 }
 
-// ---------- look around (no exit — E just rattles the handle) ----------
+// ---------- drive state ----------
 let yaw = 0;
 let pitch = -0.02;
 let steer = 0;
 let lightsOn = true;
+let speed = 14; // cruise, units/sec
 const keys = {};
 const toastEl = document.getElementById('toast');
+const speedEl = document.getElementById('speed');
 let toastTimer = 0;
+let lastKmh = -1;
 function toast(text) {
   toastEl.textContent = text;
   toastEl.classList.remove('hidden');
@@ -426,17 +435,47 @@ function frame(now) {
   const dt = Math.min((now - last) / 1000, 0.05);
   last = now;
   const t = now / 1000;
-  // steering visual: A/D or arrows
+
+  // cruise control: W/S
+  if (keys.KeyW || keys.ArrowUp) speed = Math.min(26, speed + 8 * dt);
+  if (keys.KeyS || keys.ArrowDown) speed = Math.max(0, speed - 10 * dt);
+  const kmh = Math.round(speed * 3.6);
+  if (kmh !== lastKmh) {
+    lastKmh = kmh;
+    speedEl.textContent = `${kmh} km/h · AUTO`;
+  }
+
+  // scroll the world past the car
+  const dist = speed * dt;
+  roadTex.offset.y += dist / 8;
+  for (const l of lamps) {
+    l.position.z += dist;
+    if (l.position.z > 30) l.position.z -= LAMP_SPAN;
+  }
+  for (const tr of trees) {
+    tr.position.z += dist;
+    if (tr.position.z > 35) tr.position.z -= TREE_SPAN;
+  }
+  for (const w of wheels) w.rotation.x -= dist / 0.33;
+
+  // autopilot sway + road bob (camera rides along, pinned to the seat)
+  const swayX = Math.sin(t * 0.4) * 0.22;
+  const bobY = Math.sin(t * 9) * 0.006 * (0.3 + speed / 14);
+  rig.position.x = swayX;
+  rig.position.y = bobY;
+  const autoSteer = Math.sin(t * 0.5) * 0.1 + Math.sin(t * 0.23) * 0.07;
   const sIn = (keys.KeyA || keys.ArrowLeft ? 1 : 0) - (keys.KeyD || keys.ArrowRight ? 1 : 0);
-  steer += ((sIn * 0.7) - steer) * Math.min(1, dt * 8);
+  steer += ((autoSteer + sIn * 0.4) - steer) * Math.min(1, dt * 6);
   spinner.rotation.z = steer;
-  // idle engine tremble, pinned to the seat
+
+  const tr = 0.002 + speed * 0.00018;
   camera.position.set(
-    SEAT.x + Math.sin(t * 27 + 1) * 0.0025,
-    SEAT.y + Math.sin(t * 31) * 0.0035,
+    SEAT.x + swayX + Math.sin(t * 27 + 1) * tr,
+    SEAT.y + bobY + Math.sin(t * 31) * tr * 1.4,
     SEAT.z
   );
   camera.rotation.set(pitch, yaw, 0);
+
   if (toastTimer > 0) {
     toastTimer -= dt;
     if (toastTimer <= 0) toastEl.classList.add('hidden');

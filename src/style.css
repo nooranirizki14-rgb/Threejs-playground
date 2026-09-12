@@ -36,6 +36,13 @@ html, body {
   text-shadow: 0 1px 8px rgba(0, 0, 0, 0.8);
 }
 
+#speed {
+  position: fixed; bottom: 26px; right: 28px; z-index: 10;
+  color: #97ce4c; font-family: monospace; font-size: 20px; font-weight: bold;
+  text-shadow: 0 0 12px rgba(151, 206, 76, 0.5);
+  pointer-events: none;
+}
+
 #toast {
   position: fixed; bottom: 34px; left: 50%; transform: translateX(-50%);
   background: rgba(12, 16, 26, 0.85); color: #e8ecf5;
