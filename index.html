@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>NEON RUSH — Three.js Endless Runner</title>
+  <meta name="description" content="A neon synthwave 3D endless runner built with Three.js. Dodge, jump, slide, collect coins!" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+  <script type="importmap">
+    { "imports": { "three": "./vendor/three.module.min.js" } }
+  </script>
+</head>
+<body>
+  <div id="game-container"></div>
+  <div id="vignette"></div>
+
+  <!-- HUD -->
+  <div id="hud" class="hidden">
+    <div class="hud-left">
+      <div class="hud-label">SCORE</div>
+      <div id="hud-score">0</div>
+    </div>
+    <div class="hud-center">
+      <div id="speed-wrap"><div id="speed-fill"></div></div>
+      <div id="hud-speed">0 km/h</div>
+    </div>
+    <div class="hud-right">
+      <div class="hud-label">BEST <span id="hud-best">0</span></div>
+      <div id="hud-coins">◉ 0</div>
+    </div>
+    <div class="hud-buttons">
+      <button id="btn-mute" class="icon-btn" title="Mute (M)">🔊</button>
+      <button id="btn-pause" class="icon-btn" title="Pause (P)">⏸</button>
+    </div>
+  </div>
+
+  <!-- Main menu -->
+  <div id="menu" class="overlay">
+    <div class="panel">
+      <h1 class="title">NEON<span>RUSH</span></h1>
+      <p class="subtitle">A SYNTHWAVE 3D ENDLESS RUNNER</p>
+      <div class="best-line">🏆 BEST: <span id="menu-best">0</span></div>
+      <button id="btn-start" class="big-btn">▶ &nbsp;START ENGINE</button>
+      <div class="controls kb">
+        <div><kbd>◀</kbd><kbd>▶</kbd> / <kbd>A</kbd><kbd>D</kbd><span>steer</span></div>
+        <div><kbd>▲</kbd> / <kbd>W</kbd> / <kbd>Space</kbd><span>jump</span></div>
+        <div><kbd>▼</kbd> / <kbd>S</kbd><span>slide</span></div>
+        <div><kbd>P</kbd><span>pause</span> <kbd>M</kbd><span>mute</span></div>
+      </div>
+      <div class="controls touch-only">
+        <div>⬅️&nbsp;➡️<span>swipe to steer</span></div>
+        <div>⬆️&nbsp;/&nbsp;tap<span>jump</span></div>
+        <div>⬇️<span>slide</span></div>
+      </div>
+      <p class="hint">Jump the <b class="c-orange">orange barriers</b> · Slide under the <b class="c-purple">purple blocks</b> · Thread the <b class="c-pink">pink walls</b> · Grab the <b class="c-gold">coins</b></p>
+      <p class="credit">Built with Three.js · No game engine, just code ⚡</p>
+    </div>
+  </div>
+
+  <!-- Game over -->
+  <div id="gameover" class="overlay hidden">
+    <div class="panel">
+      <h1 class="title small">WRECKED<span>💥</span></h1>
+      <div id="newbest" class="hidden">★ NEW BEST! ★</div>
+      <div class="stats">
+        <div><span>SCORE</span><b id="final-score">0</b></div>
+        <div><span>BEST</span><b id="final-best">0</b></div>
+        <div><span>COINS</span><b id="final-coins">0</b></div>
+        <div><span>DISTANCE</span><b id="final-dist">0m</b></div>
+      </div>
+      <button id="btn-restart" class="big-btn">↻ &nbsp;RACE AGAIN</button>
+      <button id="btn-menu" class="ghost-btn">Main menu</button>
+    </div>
+  </div>
+
+  <!-- Pause -->
+  <div id="pause" class="overlay hidden">
+    <div class="panel">
+      <h1 class="title small">PAUSED</h1>
+      <button id="btn-resume" class="big-btn">▶ &nbsp;RESUME</button>
+      <div class="row">
+        <button id="btn-restart2" class="ghost-btn">Restart</button>
+        <button id="btn-menu2" class="ghost-btn">Main menu</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="flash"></div>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

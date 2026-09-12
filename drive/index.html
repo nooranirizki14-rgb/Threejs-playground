@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>MIDNIGHT DRIVE — Eternal Night Haul</title>
+  <meta name="description" content="A chill first-person midnight driving sim. Rain, fuel runs, motels, breakdowns, lo-fi radio. No ending, just the road." />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌙</text></svg>" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./css/style.css" />
+</head>
+<body>
+  <div id="scene-container"></div>
+
+  <!-- eyelids (fatigue) -->
+  <div id="lid-top" class="lid"></div>
+  <div id="lid-bottom" class="lid"></div>
+  <div id="fade"></div>
+
+  <!-- boot failure (instead of a black screen) -->
+  <div id="boot-error" class="overlay hidden">
+    <div class="panel menu">
+      <h2 class="menu-title">⚠️ COULDN'T START</h2>
+      <p class="desc">Midnight Drive failed to boot:</p>
+      <p id="boot-error-msg" class="error-msg"></p>
+      <p class="desc small">Tips: use a recent Chrome / Edge / Firefox with hardware
+        acceleration on, and serve the game over http (run <b>npm run dev</b>
+        in the drive folder) — opening index.html straight from disk won't work.</p>
+    </div>
+  </div>
+
+  <!-- HUD -->
+  <div id="hud" class="hidden">
+    <div id="stat-left">
+      <div id="cash">Rp 500.000</div>
+      <div id="clock">🌙 00:00</div>
+      <div id="odo">ODO 0,0 km</div>
+    </div>
+    <canvas id="minimap" width="150" height="150"></canvas>
+    <div id="gps">
+      <div class="gps-row"><span id="gps-1">⛽ —</span></div>
+      <div class="gps-row"><span id="gps-2">🛏️ —</span></div>
+    </div>
+    <div id="warns">
+      <span id="w-fuel" class="warn hidden">⛽</span>
+      <span id="w-eng" class="warn hidden">🔧</span>
+      <span id="w-temp" class="warn hidden">🌡️</span>
+      <span id="w-light" class="warn">💡</span>
+    </div>
+    <div id="dash-right">
+      <div id="speed">0</div>
+      <div id="speed-sub"><span id="gear">P</span> · km/h</div>
+      <div class="bar-row"><span>⛽</span><div class="bar"><div id="fuel-fill"></div></div></div>
+      <div class="bar-row"><span>🔋</span><div class="bar"><div id="energy-fill"></div></div></div>
+      <div class="bar-row"><span>🍩</span><div class="bar"><div id="food-fill"></div></div></div>
+      <div id="inv">🔧<span id="inv-kit">1</span> 🛢️<span id="inv-can">0</span> 🍩<span id="inv-snack">2</span> ☕<span id="inv-coffee">1</span></div>
+    </div>
+    <div id="radio-chip" class="hidden">📻 <span id="radio-name">OFF</span></div>
+    <div id="auto-chip" class="hidden">🚗 AUTO-DRIVE</div>
+    <div id="passenger-chip" class="hidden">🧍 <span id="passenger-text"></span></div>
+    <div id="prompt" class="hidden"></div>
+    <div id="progress" class="hidden"><div id="progress-fill"></div><div id="progress-label"></div></div>
+    <div id="toasts"></div>
+    <div id="hint">W/S drive · A/D steer · E interact · L lights · V wipers · R radio · G auto · T tow · P photo</div>
+  </div>
+
+  <!-- touch controls -->
+  <div id="touch-ui" class="hidden">
+    <div id="t-steer">
+      <button id="t-left">◀</button>
+      <button id="t-right">▶</button>
+    </div>
+    <div id="t-pedal">
+      <button id="t-gas">▲</button>
+      <button id="t-brk">▼</button>
+    </div>
+    <div id="t-aux">
+      <button id="t-act">E</button>
+      <button id="t-light">💡</button>
+      <button id="t-radio">📻</button>
+    </div>
+  </div>
+  <div id="joy-base" class="hidden"><div id="joy-knob"></div></div>
+
+  <!-- toolbar -->
+  <div id="toolbar" class="hidden">
+    <button id="btn-mute" class="tool-btn" title="Mute (M)">🔊</button>
+    <button id="btn-help" class="tool-btn" title="Help">❓</button>
+    <button id="btn-cam" class="tool-btn" title="Look behind">👀</button>
+    <button id="btn-photo" class="tool-btn" title="Photo mode (P)">📷</button>
+    <button id="btn-settings" class="tool-btn" title="Settings">⚙️</button>
+  </div>
+
+  <!-- intro -->
+  <div id="intro" class="overlay">
+    <div class="panel">
+      <div class="over-title">KM 0 // 00:00 // RAIN // ETERNAL NIGHT</div>
+      <h1 class="title">MIDNIGHT<span>DRIVE</span></h1>
+      <p class="subtitle">A CHILL FIRST-PERSON NIGHT HAUL · NO ENDING, JUST ROAD</p>
+      <p class="desc">Drive the midnight highway through the rain. Watch your fuel,
+        grab snacks at the mart, sleep at motels, fix breakdowns — or just cruise
+        with the radio on and nowhere to be.</p>
+      <button id="btn-new" class="big-btn">🌙 &nbsp;START DRIVING</button>
+      <button id="btn-continue" class="big-btn hidden">▶ &nbsp;CONTINUE JOURNEY</button>
+      <div class="controls kb">
+        <div><kbd>W</kbd><kbd>S</kbd><span>gas / brake / reverse</span><kbd>A</kbd><kbd>D</kbd><span>steer</span></div>
+        <div><kbd>MOUSE</kbd><span>look</span><kbd>SPACE</kbd><span>handbrake</span><kbd>E</kbd><span>enter / exit / use (hold)</span></div>
+        <div><kbd>L</kbd><span>lights</span><kbd>H</kbd><span>beam</span><kbd>V</kbd><span>wipers</span><kbd>R</kbd><span>radio</span><kbd>G</kbd><span>auto-drive</span><kbd>T</kbd><span>tow truck</span><kbd>K</kbd><span>horn</span></div>
+        <div><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd><kbd>4</kbd><span>can · kit · snack · coffee</span><kbd>Z</kbd><kbd>X</kbd><span>signals</span><kbd>P</kbd><span>photo</span><kbd>F</kbd><span>camera</span></div>
+      </div>
+      <div class="controls touch-only">
+        <div>◀ ▶ ▲ ▼<span>drive buttons</span></div>
+        <div>👉<span>drag to look · E to interact</span></div>
+      </div>
+      <p class="credit">Three.js + Vite · RHD 🇮🇩 · prices in Rupiah · headphones recommended 🎧</p>
+    </div>
+  </div>
+
+  <!-- shop menu -->
+  <div id="shop" class="overlay hidden">
+    <div class="panel menu">
+      <h2 class="menu-title">🏪 MART 24H</h2>
+      <div id="shop-cash" class="menu-cash"></div>
+      <div id="shop-items"></div>
+      <button id="btn-shop-close" class="ghost-btn">Leave [E]</button>
+    </div>
+  </div>
+
+  <!-- rest menu -->
+  <div id="rest" class="overlay hidden">
+    <div class="panel menu">
+      <h2 class="menu-title">🛏️ MOTEL MELATI</h2>
+      <div id="rest-cash" class="menu-cash"></div>
+      <div id="rest-items"></div>
+      <button id="btn-rest-close" class="ghost-btn">Leave [E]</button>
+    </div>
+  </div>
+
+  <!-- garage: service + upgrades -->
+  <div id="upgrades" class="overlay hidden">
+    <div class="panel menu">
+      <h2 class="menu-title">🛞 BENGKEL</h2>
+      <div id="upg-cash" class="menu-cash"></div>
+      <div id="upg-items"></div>
+      <button id="btn-upg-close" class="ghost-btn">Leave [E]</button>
+    </div>
+  </div>
+
+  <!-- settings -->
+  <div id="settings" class="overlay hidden">
+    <div class="panel menu">
+      <h2 class="menu-title">⚙️ SETTINGS</h2>
+      <div id="settings-rows"></div>
+      <button id="btn-settings-close" class="ghost-btn">Close [E]</button>
+    </div>
+  </div>
+
+  <!-- help -->
+  <div id="help" class="overlay hidden">
+    <div class="panel menu">
+      <h2 class="menu-title">❓ HOW TO CHILL</h2>
+      <div class="help-body">
+        <p>⛽ <b>Fuel:</b> watch the gauge. Pull into an <b>SPBU</b>, park by a pump,
+          get out (<b>E</b>), walk to the <b>rear of the car</b>, hold <b>E</b> to refuel.</p>
+        <p>🔧 <b>Breakdown:</b> redlining, crashes &amp; dirt roads wear the engine.
+          Repair with a kit at the hood, get the garage to fix it, <b>push the car</b>
+          to a station (hold <b>E</b> behind it), or call a tow (<b>T</b>).</p>
+        <p>🛢️ <b>Jerry can (1):</b> +15L anywhere. 🍩 <b>Snack (3):</b> food. ☕ <b>Coffee (4):</b> energy.</p>
+        <p>💡 <b>H</b> high-beam · 📯 <b>K</b> horn · ↩️ <b>Z/X</b> signals · 👀 hold <b>C</b> peek back.</p>
+        <p>🧍 <b>Hitchhikers</b> wait by the road — stop and pick them up for tips.</p>
+        <p>🛞 Visit a <b>Bengkel</b> (garage) for servicing and car <b>upgrades</b>.</p>
+        <p>😴 <b>Tired?</b> Sleep at a motel (also <b>saves</b>), nap at a diner rest stop.</p>
+        <p>🚗 <b>Auto-drive (G):</b> cruises the lane at 80. Braking/steering takes over.</p>
+        <p>📷 <b>Photo mode (P):</b> hide the HUD and snap a shot. 🎥 <b>Camera (F):</b> driver / hood / chase. ⚙️ Settings has volume/quality/mouse.</p>
+        <p>💰 You earn vlog money per km. Prices in Rupiah. Drive safe — it's wet out there.</p>
+      </div>
+      <button id="btn-help-close" class="ghost-btn">Close</button>
+    </div>
+  </div>
+
+  <script type="module" src="/js/main.js"></script>
+</body>
+</html>
